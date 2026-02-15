@@ -1,17 +1,15 @@
 modLoader = "javafml"
 loaderVersion = "[10,)"
-#issueTrackerURL = ""
-license = "Insert License Here"
+license = "All Rights Reserved"
 
 [[mods]]
 modId = "architects_toolbox"
 version = "${version}"
 displayName = "Architect's Toolbox"
-authors = "Me!"
+authors = "ArchitectsToolbox"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+Measurement, visualization, and clipboard tools for Minecraft builders
 '''
-#logoFile = ""
 
 [[dependencies.architects_toolbox]]
 modId = "neoforge"

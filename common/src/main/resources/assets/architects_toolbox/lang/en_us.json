@@ -1,0 +1,34 @@
+{
+    "key.category.architects_toolbox.main": "Architect's Toolbox",
+    "key.architects_toolbox.measure": "Measure/Select Block",
+
+    "architects_toolbox.gui.radial_menu": "Measurement Options",
+
+    "architects_toolbox.action.clear": "Clear Selection",
+    "architects_toolbox.action.shape.rectangle": "Rectangle",
+    "architects_toolbox.action.shape.cylinder": "Cylinder",
+    "architects_toolbox.action.shape.ellipsoid": "Ellipsoid",
+    "architects_toolbox.action.subdivide": "Subdivide: %s",
+    "architects_toolbox.action.subdivide.none": "No Subdivisions",
+    "architects_toolbox.action.count.on": "Count: On",
+    "architects_toolbox.action.count.off": "Count: Off",
+    "architects_toolbox.action.hollow.on": "Hollow: On",
+    "architects_toolbox.action.hollow.off": "Hollow: Off",
+    "architects_toolbox.action.layer.on": "Layer: On",
+    "architects_toolbox.action.layer.off": "Layer: Off",
+    "architects_toolbox.action.paste_layer.on": "Paste Layer: On",
+    "architects_toolbox.action.paste_layer.off": "Paste Layer: Off",
+
+    "architects_toolbox.shape.rectangle": "Rectangle",
+    "architects_toolbox.shape.cylinder": "Cylinder",
+    "architects_toolbox.shape.ellipsoid": "Ellipsoid",
+    "architects_toolbox.shape.spline": "Spline",
+    "architects_toolbox.shape.line": "Line",
+
+    "architects_toolbox.mode.rotate": "Rotate",
+    "architects_toolbox.mode.layer": "Layer",
+    "architects_toolbox.mode.nudge": "Nudge",
+
+    "architects_toolbox.overlay.block_counts": "Block Counts",
+    "architects_toolbox.overlay.total": "Total: %s"
+}

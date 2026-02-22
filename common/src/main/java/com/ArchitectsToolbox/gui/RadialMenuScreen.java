@@ -2,7 +2,6 @@ package com.ArchitectsToolbox.gui;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -155,8 +154,8 @@ public class RadialMenuScreen extends Screen {
     }
 
     @Override
-    public boolean keyReleased(KeyEvent keyEvent) {
-        if (keyEvent.key() == triggerKey) {
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == triggerKey) {
             if (hoveredIndex >= 0 && actions != null && hoveredIndex < actions.size()) {
                 RadialMenuAction action = actions.get(hoveredIndex);
                 if (action.isEnabled()) {
@@ -166,7 +165,7 @@ public class RadialMenuScreen extends Screen {
             this.onClose();
             return true;
         }
-        return super.keyReleased(keyEvent);
+        return super.keyReleased(keyCode, scanCode, modifiers);
     }
 
     @Override

@@ -1,5 +1,6 @@
 {
     "key.category.architects_toolbox.main": "Architect's Toolbox",
+    "key.categories.architects_toolbox": "Architect's Toolbox",
     "key.architects_toolbox.measure": "Measure/Select Block",
 
     "architects_toolbox.gui.radial_menu": "Measurement Options",

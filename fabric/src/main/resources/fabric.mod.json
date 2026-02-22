@@ -22,10 +22,10 @@
     "architects_toolbox.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.18.4",
-    "minecraft": "~1.21.10",
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
     "java": ">=21",
-    "architectury": ">=18.0.6",
+    "architectury": ">=13.0.6",
     "fabric-api": "*"
   },
   "suggests": {

@@ -12,7 +12,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.lwjgl.glfw.GLFW;
@@ -20,9 +19,7 @@ import org.lwjgl.glfw.GLFW;
 public class ArchitectsToolboxClient {
     private static final ArchitectsToolboxClient INSTANCE = new ArchitectsToolboxClient();
 
-    private static final KeyMapping.Category KEY_CATEGORY = KeyMapping.Category.register(
-        ResourceLocation.fromNamespaceAndPath("architects_toolbox", "main")
-    );
+    private static final String KEY_CATEGORY = "key.categories.architects_toolbox";
     private static final String KEY_MEASURE = "key.architects_toolbox.measure";
     public static final KeyMapping KEY_BINDING_MEASURE = new KeyMapping(
         KEY_MEASURE,
@@ -136,14 +133,14 @@ public class ArchitectsToolboxClient {
         }
 
         if (clipboard.isPastePreviewActive()) {
-            boolean leftPressed = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT);
+            boolean leftPressed = InputConstants.isKeyDown(client.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT);
             if (leftPressed && !leftArrowWasPressed) {
                 clipboard.rotateCounterClockwise();
                 showRotationMessage(client, clipboard.getPreviewRotation());
             }
             leftArrowWasPressed = leftPressed;
 
-            boolean rightPressed = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT);
+            boolean rightPressed = InputConstants.isKeyDown(client.getWindow().getWindow(), GLFW.GLFW_KEY_RIGHT);
             if (rightPressed && !rightArrowWasPressed) {
                 clipboard.rotateClockwise();
                 showRotationMessage(client, clipboard.getPreviewRotation());
@@ -163,7 +160,7 @@ public class ArchitectsToolboxClient {
 
     private void handleLayerInput(Minecraft client, SelectionManager selection,
                                    ClipboardManager clipboard, boolean hollowActive, boolean pasteActive) {
-        boolean upPressed = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_UP);
+        boolean upPressed = InputConstants.isKeyDown(client.getWindow().getWindow(), GLFW.GLFW_KEY_UP);
         if (upPressed && !upArrowWasPressed) {
             if (hollowActive) {
                 selection.cycleLayerUp();
@@ -176,7 +173,7 @@ public class ArchitectsToolboxClient {
         }
         upArrowWasPressed = upPressed;
 
-        boolean downPressed = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_DOWN);
+        boolean downPressed = InputConstants.isKeyDown(client.getWindow().getWindow(), GLFW.GLFW_KEY_DOWN);
         if (downPressed && !downArrowWasPressed) {
             if (hollowActive) {
                 selection.cycleLayerDown();

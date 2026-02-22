@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[10,)"
+loaderVersion = "[4,)"
 license = "All Rights Reserved"
 
 [[mods]]
@@ -14,21 +14,21 @@ Measurement, visualization, and clipboard tools for Minecraft builders
 [[dependencies.architects_toolbox]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.10,)"
+versionRange = "[21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.architects_toolbox]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.10,)"
+versionRange = "[1.21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.architects_toolbox]]
 modId = "architectury"
 type = "required"
-versionRange = "[18.0.6,)"
+versionRange = "[13.0.6,)"
 ordering = "AFTER"
 side = "BOTH"
 

@@ -13,7 +13,7 @@ public final class ArchitectsToolboxNeoForge {
     public ArchitectsToolboxNeoForge(IEventBus modEventBus) {
         ArchitectsToolbox.init();
 
-        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+        if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(this::onClientSetup);
         }
     }

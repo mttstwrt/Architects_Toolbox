@@ -1,6 +1,5 @@
 package com.ArchitectsToolbox.render;
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -16,7 +15,7 @@ import org.joml.Quaternionf;
 
 public class RenderUtils {
 
-    private static final ByteBufferBuilder LABEL_BUFFER = new ByteBufferBuilder(256);
+    private static final RenderBuffer LABEL_BUFFER = new RenderBuffer(256);
 
     public static void drawLine(VertexConsumer consumer, Matrix4f matrix,
                                 float x1, float y1, float z1,
@@ -99,7 +98,7 @@ public class RenderUtils {
 
         float halfWidth = font.width(text) / 2.0f;
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(LABEL_BUFFER);
+        MultiBufferSource.BufferSource source = LABEL_BUFFER.createSource();
 
         int textColor = ((int)(r * 255) << 16) | ((int)(g * 255) << 8) | (int)(b * 255);
         int alpha = 0xFF000000;

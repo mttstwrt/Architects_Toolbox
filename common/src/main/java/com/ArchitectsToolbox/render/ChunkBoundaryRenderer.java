@@ -1,6 +1,5 @@
 package com.ArchitectsToolbox.render;
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -16,7 +15,7 @@ import java.util.List;
 
 public class ChunkBoundaryRenderer implements ShapeRenderer {
 
-    private static final ByteBufferBuilder BUFFER = new ByteBufferBuilder(8192);
+    private static final RenderBuffer BUFFER = new RenderBuffer(8192);
     private static final int CHUNK_SIZE = 16;
     private static final int RENDER_RADIUS = 2;
     private static final int MIN_Y = -64;
@@ -33,7 +32,7 @@ public class ChunkBoundaryRenderer implements ShapeRenderer {
         PoseStack poseStack = new PoseStack();
         poseStack.mulPose(viewMatrix);
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(BUFFER);
+        MultiBufferSource.BufferSource source = BUFFER.createSource();
         VertexConsumer consumer = source.getBuffer(RenderType.lines());
         Matrix4f matrix = poseStack.last().pose();
 

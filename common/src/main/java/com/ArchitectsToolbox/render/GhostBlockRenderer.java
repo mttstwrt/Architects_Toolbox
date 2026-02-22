@@ -1,7 +1,6 @@
 package com.ArchitectsToolbox.render;
 
 import com.ArchitectsToolbox.ClipboardManager;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -22,8 +21,8 @@ import java.util.*;
 
 public class GhostBlockRenderer {
 
-    private static final ByteBufferBuilder BUFFER = new ByteBufferBuilder(262144);
-    private static final ByteBufferBuilder LINE_BUFFER = new ByteBufferBuilder(8192);
+    private static final RenderBuffer BUFFER = new RenderBuffer(262144);
+    private static final RenderBuffer LINE_BUFFER = new RenderBuffer(8192);
 
     // Cache for locked placements
     private Map<BlockPos, BlockState> cachedGhostBlocks = null;
@@ -93,7 +92,7 @@ public class GhostBlockRenderer {
             return Double.compare(distB, distA);
         });
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(BUFFER);
+        MultiBufferSource.BufferSource source = BUFFER.createSource();
 
         for (Map.Entry<BlockPos, BlockState> entry : sortedBlocks) {
             BlockPos pos = entry.getKey();
@@ -142,7 +141,7 @@ public class GhostBlockRenderer {
         poseStack.mulPose(viewMatrix);
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(LINE_BUFFER);
+        MultiBufferSource.BufferSource source = LINE_BUFFER.createSource();
         VertexConsumer consumer = source.getBuffer(RenderType.lines());
         Matrix4f matrix = poseStack.last().pose();
 

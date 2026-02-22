@@ -2,7 +2,6 @@ package com.ArchitectsToolbox.render;
 
 import com.ArchitectsToolbox.SelectionManager;
 import com.ArchitectsToolbox.shapes.EllipsoidMode;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -16,7 +15,7 @@ import java.util.List;
 
 public class EllipsoidRenderer implements ShapeRenderer {
 
-    private static final ByteBufferBuilder BUFFER = new ByteBufferBuilder(8192);
+    private static final RenderBuffer BUFFER = new RenderBuffer(8192);
     private static final int RING_SEGMENTS = 64;
     private static final int LATITUDE_RINGS = 16;
 
@@ -62,7 +61,7 @@ public class EllipsoidRenderer implements ShapeRenderer {
         poseStack.mulPose(viewMatrix);
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(BUFFER);
+        MultiBufferSource.BufferSource source = BUFFER.createSource();
         VertexConsumer consumer = source.getBuffer(RenderType.lines());
         Matrix4f matrix = poseStack.last().pose();
 

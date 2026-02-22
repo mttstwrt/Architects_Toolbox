@@ -1,6 +1,5 @@
 package com.ArchitectsToolbox.render;
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -15,7 +14,7 @@ import java.util.List;
 
 public class RectangleRenderer implements ShapeRenderer {
 
-    private static final ByteBufferBuilder BUFFER = new ByteBufferBuilder(1536);
+    private static final RenderBuffer BUFFER = new RenderBuffer(1536);
 
     @Override
     public void render(Camera camera, Matrix4f viewMatrix, List<BlockPos> selection, RenderConfig config) {
@@ -28,7 +27,7 @@ public class RectangleRenderer implements ShapeRenderer {
         poseStack.mulPose(viewMatrix);
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(BUFFER);
+        MultiBufferSource.BufferSource source = BUFFER.createSource();
         VertexConsumer consumer = source.getBuffer(RenderType.lines());
         Matrix4f matrix = poseStack.last().pose();
 

@@ -1,7 +1,6 @@
 package com.ArchitectsToolbox.render;
 
 import com.ArchitectsToolbox.SelectionManager;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -15,7 +14,7 @@ import java.util.List;
 
 public class CylinderRenderer implements ShapeRenderer {
 
-    private static final ByteBufferBuilder BUFFER = new ByteBufferBuilder(4096);
+    private static final RenderBuffer BUFFER = new RenderBuffer(4096);
     private static final int CIRCLE_SEGMENTS = 64;
 
     @Override
@@ -45,7 +44,7 @@ public class CylinderRenderer implements ShapeRenderer {
         poseStack.mulPose(viewMatrix);
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
-        MultiBufferSource.BufferSource source = MultiBufferSource.immediate(BUFFER);
+        MultiBufferSource.BufferSource source = BUFFER.createSource();
         VertexConsumer consumer = source.getBuffer(RenderType.lines());
         Matrix4f matrix = poseStack.last().pose();
 

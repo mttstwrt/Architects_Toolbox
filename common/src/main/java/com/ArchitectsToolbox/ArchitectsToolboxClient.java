@@ -164,7 +164,6 @@ public class ArchitectsToolboxClient {
         if (upPressed && !upArrowWasPressed) {
             if (hollowActive) {
                 selection.cycleLayerUp();
-                com.ArchitectsToolbox.render.MeasurementRenderer.getInstance().invalidateHollowShapeCache();
             }
             if (pasteActive) {
                 clipboard.cycleLayerUp();
@@ -177,7 +176,6 @@ public class ArchitectsToolboxClient {
         if (downPressed && !downArrowWasPressed) {
             if (hollowActive) {
                 selection.cycleLayerDown();
-                com.ArchitectsToolbox.render.MeasurementRenderer.getInstance().invalidateHollowShapeCache();
             }
             if (pasteActive) {
                 clipboard.cycleLayerDown();

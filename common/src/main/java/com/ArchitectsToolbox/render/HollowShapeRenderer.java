@@ -16,6 +16,7 @@ import java.util.*;
 public class HollowShapeRenderer {
 
     private static final RenderBuffer BUFFER = new RenderBuffer(65536);
+    private final CachedLineBuffer cachedLineBuffer = new CachedLineBuffer();
 
     private List<BlockPos> cachedBlocks = null;
     private List<BlockPos> cachedSelection = null;
@@ -32,8 +33,63 @@ public class HollowShapeRenderer {
 
         SelectionManager sm = SelectionManager.getInstance();
         boolean layerMode = sm.isLayerModeEnabled();
-        int layerY = layerMode ? sm.getCurrentLayerY() : -1;
 
+        if (layerMode) {
+            renderImmediate(camera, viewMatrix, blocks, config, sm.getCurrentLayerY());
+        } else {
+            renderCached(camera, viewMatrix, blocks, config);
+        }
+    }
+
+    private void renderCached(Camera camera, Matrix4f viewMatrix, List<BlockPos> blocks,
+                              ShapeRenderer.RenderConfig config) {
+        if (cachedLineBuffer.isDirty()) {
+            float r = config.red(), g = config.green(), b = config.blue(), a = config.alpha();
+            Set<BlockPos> blockSet = new HashSet<>(blocks);
+
+            cachedLineBuffer.begin();
+            int rendered = 0;
+
+            for (BlockPos pos : blocks) {
+                float minX = pos.getX();
+                float minY = pos.getY();
+                float minZ = pos.getZ();
+                float maxX = minX + 1;
+                float maxY = minY + 1;
+                float maxZ = minZ + 1;
+
+                if (!blockSet.contains(pos.below())) {
+                    addFaceOutlineCached(minX, minY, minZ, maxX, minY, maxZ, 'y', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.above())) {
+                    addFaceOutlineCached(minX, maxY, minZ, maxX, maxY, maxZ, 'y', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.west())) {
+                    addFaceOutlineCached(minX, minY, minZ, minX, maxY, maxZ, 'x', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.east())) {
+                    addFaceOutlineCached(maxX, minY, minZ, maxX, maxY, maxZ, 'x', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.north())) {
+                    addFaceOutlineCached(minX, minY, minZ, maxX, maxY, minZ, 'z', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.south())) {
+                    addFaceOutlineCached(minX, minY, maxZ, maxX, maxY, maxZ, 'z', r, g, b, a);
+                }
+
+                rendered++;
+                if (rendered > 50000) break;
+            }
+
+            cachedLineBuffer.upload();
+        }
+
+        Vec3 camPos = camera.getPosition();
+        cachedLineBuffer.draw(viewMatrix, camPos.x, camPos.y, camPos.z);
+    }
+
+    private void renderImmediate(Camera camera, Matrix4f viewMatrix, List<BlockPos> blocks,
+                                 ShapeRenderer.RenderConfig config, int layerY) {
         Vec3 camPos = camera.getPosition();
 
         PoseStack poseStack = new PoseStack();
@@ -50,9 +106,8 @@ public class HollowShapeRenderer {
         int rendered = 0;
 
         for (BlockPos pos : blocks) {
-            if (layerMode && pos.getY() != layerY) continue;
+            if (pos.getY() != layerY) continue;
 
-            // Only draw faces that are on the outside (no neighbor)
             float minX = pos.getX();
             float minY = pos.getY();
             float minZ = pos.getZ();
@@ -60,26 +115,23 @@ public class HollowShapeRenderer {
             float maxY = minY + 1;
             float maxZ = minZ + 1;
 
-            float blockAlpha = a;
-
-            // Draw individual block outline
             if (!blockSet.contains(pos.below())) {
-                drawFaceOutline(consumer, matrix, minX, minY, minZ, maxX, minY, maxZ, 'y', r, g, b, blockAlpha);
+                drawFaceOutline(consumer, matrix, minX, minY, minZ, maxX, minY, maxZ, 'y', r, g, b, a);
             }
             if (!blockSet.contains(pos.above())) {
-                drawFaceOutline(consumer, matrix, minX, maxY, minZ, maxX, maxY, maxZ, 'y', r, g, b, blockAlpha);
+                drawFaceOutline(consumer, matrix, minX, maxY, minZ, maxX, maxY, maxZ, 'y', r, g, b, a);
             }
             if (!blockSet.contains(pos.west())) {
-                drawFaceOutline(consumer, matrix, minX, minY, minZ, minX, maxY, maxZ, 'x', r, g, b, blockAlpha);
+                drawFaceOutline(consumer, matrix, minX, minY, minZ, minX, maxY, maxZ, 'x', r, g, b, a);
             }
             if (!blockSet.contains(pos.east())) {
-                drawFaceOutline(consumer, matrix, maxX, minY, minZ, maxX, maxY, maxZ, 'x', r, g, b, blockAlpha);
+                drawFaceOutline(consumer, matrix, maxX, minY, minZ, maxX, maxY, maxZ, 'x', r, g, b, a);
             }
             if (!blockSet.contains(pos.north())) {
-                drawFaceOutline(consumer, matrix, minX, minY, minZ, maxX, maxY, minZ, 'z', r, g, b, blockAlpha);
+                drawFaceOutline(consumer, matrix, minX, minY, minZ, maxX, maxY, minZ, 'z', r, g, b, a);
             }
             if (!blockSet.contains(pos.south())) {
-                drawFaceOutline(consumer, matrix, minX, minY, maxZ, maxX, maxY, maxZ, 'z', r, g, b, blockAlpha);
+                drawFaceOutline(consumer, matrix, minX, minY, maxZ, maxX, maxY, maxZ, 'z', r, g, b, a);
             }
 
             rendered++;
@@ -89,6 +141,32 @@ public class HollowShapeRenderer {
         source.endBatch();
     }
 
+    private void addFaceOutlineCached(float x1, float y1, float z1,
+                                      float x2, float y2, float z2,
+                                      char axis,
+                                      float r, float g, float b, float a) {
+        switch (axis) {
+            case 'y' -> {
+                cachedLineBuffer.addLine(x1, y1, z1, x2, y1, z1, r, g, b, a);
+                cachedLineBuffer.addLine(x2, y1, z1, x2, y1, z2, r, g, b, a);
+                cachedLineBuffer.addLine(x2, y1, z2, x1, y1, z2, r, g, b, a);
+                cachedLineBuffer.addLine(x1, y1, z2, x1, y1, z1, r, g, b, a);
+            }
+            case 'x' -> {
+                cachedLineBuffer.addLine(x1, y1, z1, x1, y2, z1, r, g, b, a);
+                cachedLineBuffer.addLine(x1, y2, z1, x1, y2, z2, r, g, b, a);
+                cachedLineBuffer.addLine(x1, y2, z2, x1, y1, z2, r, g, b, a);
+                cachedLineBuffer.addLine(x1, y1, z2, x1, y1, z1, r, g, b, a);
+            }
+            case 'z' -> {
+                cachedLineBuffer.addLine(x1, y1, z1, x2, y1, z1, r, g, b, a);
+                cachedLineBuffer.addLine(x2, y1, z1, x2, y2, z1, r, g, b, a);
+                cachedLineBuffer.addLine(x2, y2, z1, x1, y2, z1, r, g, b, a);
+                cachedLineBuffer.addLine(x1, y2, z1, x1, y1, z1, r, g, b, a);
+            }
+        }
+    }
+
     private void drawFaceOutline(VertexConsumer consumer, Matrix4f matrix,
                                   float x1, float y1, float z1,
                                   float x2, float y2, float z2,
@@ -96,21 +174,18 @@ public class HollowShapeRenderer {
                                   float r, float g, float b, float a) {
         switch (axis) {
             case 'y' -> {
-                // Horizontal face (floor/ceiling)
                 RenderUtils.drawLine(consumer, matrix, x1, y1, z1, x2, y1, z1, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x2, y1, z1, x2, y1, z2, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x2, y1, z2, x1, y1, z2, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x1, y1, z2, x1, y1, z1, r, g, b, a);
             }
             case 'x' -> {
-                // Vertical face (west/east wall)
                 RenderUtils.drawLine(consumer, matrix, x1, y1, z1, x1, y2, z1, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x1, y2, z1, x1, y2, z2, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x1, y2, z2, x1, y1, z2, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x1, y1, z2, x1, y1, z1, r, g, b, a);
             }
             case 'z' -> {
-                // Vertical face (north/south wall)
                 RenderUtils.drawLine(consumer, matrix, x1, y1, z1, x2, y1, z1, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x2, y1, z1, x2, y2, z1, r, g, b, a);
                 RenderUtils.drawLine(consumer, matrix, x2, y2, z1, x1, y2, z1, r, g, b, a);
@@ -131,6 +206,7 @@ public class HollowShapeRenderer {
         cachedMode = mode;
         cachedSubdivisions = config.subdivisions();
         cacheValid = true;
+        cachedLineBuffer.markDirty();
 
         return cachedBlocks;
     }
@@ -139,5 +215,6 @@ public class HollowShapeRenderer {
         cacheValid = false;
         cachedBlocks = null;
         cachedSelection = null;
+        cachedLineBuffer.markDirty();
     }
 }

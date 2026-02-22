@@ -169,6 +169,11 @@ public class RadialMenuScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Skip default blur + gradient — we draw our own overlay
+    }
+
+    @Override
     public boolean isPauseScreen() {
         return false;
     }

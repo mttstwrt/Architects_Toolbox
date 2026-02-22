@@ -23,6 +23,7 @@ public class GhostBlockRenderer {
 
     private static final RenderBuffer BUFFER = new RenderBuffer(262144);
     private static final RenderBuffer LINE_BUFFER = new RenderBuffer(8192);
+    private final CachedLineBuffer cachedOutlineBuffer = new CachedLineBuffer();
 
     // Cache for locked placements
     private Map<BlockPos, BlockState> cachedGhostBlocks = null;
@@ -126,15 +127,96 @@ public class GhostBlockRenderer {
 
         // Draw outlines around ghost blocks
         if (isPreview) {
-            renderGhostBlockOutlines(camera, viewMatrix, blocks, 0.3f, 0.8f, 1.0f, 0.6f);
+            renderOutlinesImmediate(camera, viewMatrix, blocks, 0.3f, 0.8f, 1.0f, 0.6f);
         } else {
-            renderGhostBlockOutlines(camera, viewMatrix, blocks, 0.2f, 1.0f, 0.2f, 0.4f);
+            ClipboardManager clipboard = ClipboardManager.getInstance();
+            boolean layerMode = clipboard.isLayerViewEnabled();
+            if (layerMode) {
+                // Layer mode: use immediate rendering (filtered subset changes per layer)
+                renderOutlinesImmediate(camera, viewMatrix, blocks, 0.2f, 1.0f, 0.2f, 0.4f);
+            } else {
+                // Non-layer locked: use GPU-cached rendering
+                renderOutlinesCached(camera, viewMatrix, blocks, 0.2f, 1.0f, 0.2f, 0.4f);
+            }
         }
     }
 
-    private void renderGhostBlockOutlines(Camera camera, Matrix4f viewMatrix,
-                                           Map<BlockPos, BlockState> blocks,
-                                           float r, float g, float b, float a) {
+    private void renderOutlinesCached(Camera camera, Matrix4f viewMatrix,
+                                      Map<BlockPos, BlockState> blocks,
+                                      float r, float g, float b, float a) {
+        if (cachedOutlineBuffer.isDirty()) {
+            Set<BlockPos> blockSet = blocks.keySet();
+
+            cachedOutlineBuffer.begin();
+            int rendered = 0;
+
+            for (BlockPos pos : blockSet) {
+                float minX = pos.getX();
+                float minY = pos.getY();
+                float minZ = pos.getZ();
+                float maxX = minX + 1;
+                float maxY = minY + 1;
+                float maxZ = minZ + 1;
+
+                if (!blockSet.contains(pos.below())) {
+                    addFaceOutlineCached(minX, minY, minZ, maxX, minY, maxZ, 'y', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.above())) {
+                    addFaceOutlineCached(minX, maxY, minZ, maxX, maxY, maxZ, 'y', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.west())) {
+                    addFaceOutlineCached(minX, minY, minZ, minX, maxY, maxZ, 'x', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.east())) {
+                    addFaceOutlineCached(maxX, minY, minZ, maxX, maxY, maxZ, 'x', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.north())) {
+                    addFaceOutlineCached(minX, minY, minZ, maxX, maxY, minZ, 'z', r, g, b, a);
+                }
+                if (!blockSet.contains(pos.south())) {
+                    addFaceOutlineCached(minX, minY, maxZ, maxX, maxY, maxZ, 'z', r, g, b, a);
+                }
+
+                rendered++;
+                if (rendered > 50000) break;
+            }
+
+            cachedOutlineBuffer.upload();
+        }
+
+        Vec3 camPos = camera.getPosition();
+        cachedOutlineBuffer.draw(viewMatrix, camPos.x, camPos.y, camPos.z);
+    }
+
+    private void addFaceOutlineCached(float x1, float y1, float z1,
+                                      float x2, float y2, float z2,
+                                      char axis,
+                                      float r, float g, float b, float a) {
+        switch (axis) {
+            case 'y' -> {
+                cachedOutlineBuffer.addLine(x1, y1, z1, x2, y1, z1, r, g, b, a);
+                cachedOutlineBuffer.addLine(x2, y1, z1, x2, y1, z2, r, g, b, a);
+                cachedOutlineBuffer.addLine(x2, y1, z2, x1, y1, z2, r, g, b, a);
+                cachedOutlineBuffer.addLine(x1, y1, z2, x1, y1, z1, r, g, b, a);
+            }
+            case 'x' -> {
+                cachedOutlineBuffer.addLine(x1, y1, z1, x1, y2, z1, r, g, b, a);
+                cachedOutlineBuffer.addLine(x1, y2, z1, x1, y2, z2, r, g, b, a);
+                cachedOutlineBuffer.addLine(x1, y2, z2, x1, y1, z2, r, g, b, a);
+                cachedOutlineBuffer.addLine(x1, y1, z2, x1, y1, z1, r, g, b, a);
+            }
+            case 'z' -> {
+                cachedOutlineBuffer.addLine(x1, y1, z1, x2, y1, z1, r, g, b, a);
+                cachedOutlineBuffer.addLine(x2, y1, z1, x2, y2, z1, r, g, b, a);
+                cachedOutlineBuffer.addLine(x2, y2, z1, x1, y2, z1, r, g, b, a);
+                cachedOutlineBuffer.addLine(x1, y2, z1, x1, y1, z1, r, g, b, a);
+            }
+        }
+    }
+
+    private void renderOutlinesImmediate(Camera camera, Matrix4f viewMatrix,
+                                          Map<BlockPos, BlockState> blocks,
+                                          float r, float g, float b, float a) {
         Vec3 camPos = camera.getPosition();
 
         PoseStack poseStack = new PoseStack();
@@ -156,7 +238,6 @@ public class GhostBlockRenderer {
             float maxY = minY + 1;
             float maxZ = minZ + 1;
 
-            // Only draw exposed faces
             if (!blockSet.contains(pos.below())) {
                 drawFaceOutline(consumer, matrix, minX, minY, minZ, maxX, minY, maxZ, 'y', r, g, b, a);
             }
@@ -217,12 +298,14 @@ public class GhostBlockRenderer {
 
         cachedGhostBlocks = clipboard.getAllLockedBlocks();
         cacheValid = true;
+        cachedOutlineBuffer.markDirty();
         return cachedGhostBlocks;
     }
 
     public void invalidateCache() {
         cacheValid = false;
         cachedGhostBlocks = null;
+        cachedOutlineBuffer.markDirty();
     }
 
     /**

@@ -2,6 +2,8 @@ plugins {
     id 'com.gradleup.shadow'
 }
 
+version = "${rootProject.mod_version}+mc${rootProject.minecraft_version}-neoforge${rootProject.neoforge_version}"
+
 architectury {
     platformSetupLoomIde()
     neoForge()

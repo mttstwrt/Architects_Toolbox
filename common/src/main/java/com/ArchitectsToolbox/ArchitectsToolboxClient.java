@@ -4,6 +4,7 @@ import com.ArchitectsToolbox.gui.BlockCountOverlay;
 import com.ArchitectsToolbox.gui.RadialMenuRegistry;
 import com.ArchitectsToolbox.gui.RadialMenuScreen;
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.architectury.event.events.client.ClientCommandRegistrationEvent;
 import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
@@ -53,6 +54,9 @@ public class ArchitectsToolboxClient {
 
         // Register HUD render event via Architectury
         ClientGuiEvent.RENDER_HUD.register((guiGraphics, deltaTracker) -> onHudRender(guiGraphics, deltaTracker));
+
+        // Register client-side commands via Architectury
+        ClientCommandRegistrationEvent.EVENT.register(com.ArchitectsToolbox.command.ToolboxCommands::register);
 
         // Initialize radial menu actions
         RadialMenuRegistry.initialize();

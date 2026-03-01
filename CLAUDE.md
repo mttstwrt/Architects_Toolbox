@@ -30,7 +30,7 @@ neoforge/ - NeoForge entry point (1 file)
 
 Platform modules are thin wrappers that call `ArchitectsToolbox.init()` + `ArchitectsToolboxClient.initClient()`. All logic lives in `common/`.
 
-> Detailed docs: [Docs/architecture.md](Docs/architecture.md) | [Docs/rendering.md](Docs/rendering.md) | [Docs/managers.md](Docs/managers.md) | [Docs/gui.md](Docs/gui.md) | [Docs/extending.md](Docs/extending.md)
+> Detailed docs: [Docs/architecture.md](Docs/architecture.md) | [Docs/rendering.md](Docs/rendering.md) | [Docs/managers.md](Docs/managers.md) | [Docs/gui.md](Docs/gui.md) | [Docs/commands.md](Docs/commands.md) | [Docs/extending.md](Docs/extending.md)
 
 ## Package Layout (common module)
 
@@ -46,6 +46,7 @@ com.ArchitectsToolbox/
   shapes/ShapeMode.java            # RECTANGLE, CYLINDER, ELLIPSOID, SPLINE, LINE
   shapes/EllipsoidMode.java        # FIT_TO_BOX, CENTERED
   util/SplineMath.java             # Catmull-Rom spline math
+  command/ToolboxCommands.java     # Client-side /atb commands (Brigadier + Architectury)
   mixin/WorldRendererMixin.java    # Injects into LevelRenderer.renderLevel @TAIL
   render/                          # See Docs/rendering.md
   gui/                             # See Docs/gui.md
@@ -55,9 +56,10 @@ com.ArchitectsToolbox/
 
 All cross-loader abstractions are in `ArchitectsToolboxClient.initClient()`:
 ```java
-KeyMappingRegistry.register(KEY_BINDING_MEASURE);                    // dev.architectury.registry.client.keymappings
-ClientTickEvent.CLIENT_POST.register(instance -> onClientTick(...)); // dev.architectury.event.events.client
+KeyMappingRegistry.register(KEY_BINDING_MEASURE);                                   // dev.architectury.registry.client.keymappings
+ClientTickEvent.CLIENT_POST.register(instance -> onClientTick(...));                 // dev.architectury.event.events.client
 ClientGuiEvent.RENDER_HUD.register((gui, delta) -> onHudRender(...));
+ClientCommandRegistrationEvent.EVENT.register(ToolboxCommands::register);            // dev.architectury.event.events.client
 ```
 
 Config uses `Platform.getConfigFolder()` (not ServiceLoader). No platform-specific interfaces needed.
@@ -72,6 +74,18 @@ Config uses `Platform.getConfigFolder()` (not ServiceLoader). No platform-specif
 ## Rendering Pipeline
 
 `WorldRendererMixin` -> `MeasurementRenderer.render()` -> shape-specific `ShapeRenderer` -> `RenderUtils.drawLine()`/`drawBox()`/`renderFloatingText()`
+
+## Commands
+
+Client-side commands registered via `ClientCommandRegistrationEvent` (Architectury). See [Docs/commands.md](Docs/commands.md).
+
+- `/atb pos1 <x> <y> <z>` — Set selection corner 1
+- `/atb pos2 <x> <y> <z>` — Set selection corner 2
+- `/atb clear` — Clear selection
+- `/atb shape <mode>` — Switch shape mode (rectangle/cylinder/ellipsoid/spline/line)
+- `/atb info` — Print selection info with clickable coordinates (copies to clipboard)
+
+Commands use raw Brigadier builders (`LiteralArgumentBuilder.literal()`) not `Commands.literal()` (which is tied to server `CommandSourceStack`).
 
 ## Input
 

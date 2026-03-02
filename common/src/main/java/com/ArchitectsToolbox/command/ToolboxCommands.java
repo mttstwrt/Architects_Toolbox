@@ -20,8 +20,12 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 
 public class ToolboxCommands {
 
@@ -69,6 +73,11 @@ public class ToolboxCommands {
 
         atb.then(lit("info")
                 .executes(ctx -> showInfo()));
+
+        atb.then(lit("identify")
+                .executes(ctx -> identify(0))
+                .then(arg("radius", IntegerArgumentType.integer(0, 256))
+                    .executes(ctx -> identify(IntegerArgumentType.getInteger(ctx, "radius")))));
 
         dispatcher.register(atb);
     }
@@ -185,6 +194,182 @@ public class ToolboxCommands {
         }
 
         return 1;
+    }
+
+    private static int identify(int radius) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return 0;
+
+        SelectionManager sel = SelectionManager.getInstance();
+        boolean hasSel = sel.hasSelection();
+        BlockPos selMin = hasSel ? sel.getMinPos() : null;
+        BlockPos selMax = hasSel ? sel.getMaxPos() : null;
+        BlockPos scanMin, scanMax;
+
+        if (hasSel) {
+            scanMin = selMin.offset(-radius, -radius, -radius);
+            scanMax = selMax.offset(radius, radius, radius);
+        } else {
+            BlockPos pp = mc.player.blockPosition();
+            scanMin = pp.offset(-radius, -radius, -radius);
+            scanMax = pp.offset(radius, radius, radius);
+        }
+
+        // Clamp Y to world bounds
+        int minY = mc.level.getMinY();
+        int maxY = mc.level.getMaxY();
+        scanMin = new BlockPos(scanMin.getX(), Math.max(minY, scanMin.getY()), scanMin.getZ());
+        scanMax = new BlockPos(scanMax.getX(), Math.min(maxY, scanMax.getY()), scanMax.getZ());
+
+        sendMsg(Component.literal("--- Identify ---").withStyle(ChatFormatting.GOLD));
+        if (!hasSel) {
+            sendMsg(Component.literal("No selection \u2014 using player position").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        if (radius > 0) {
+            sendMsg(Component.literal("Search radius: " + radius).withStyle(ChatFormatting.DARK_GRAY));
+        }
+
+        identifyBiomes(mc, scanMin, scanMax, selMin, selMax);
+        identifyStructures(mc, scanMin, scanMax, selMin, selMax);
+
+        return 1;
+    }
+
+    private static void identifyBiomes(Minecraft mc, BlockPos scanMin, BlockPos scanMax,
+            BlockPos selMin, BlockPos selMax) {
+        // Sample at 4-block intervals (matches biome storage resolution)
+        Map<ResourceLocation, boolean[]> found = new LinkedHashMap<>();
+        Map<ResourceLocation, BlockPos> nearestOutside = new LinkedHashMap<>();
+
+        for (int x = scanMin.getX(); x <= scanMax.getX(); x += 4) {
+            for (int z = scanMin.getZ(); z <= scanMax.getZ(); z += 4) {
+                for (int y = scanMin.getY(); y <= scanMax.getY(); y += 4) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    mc.level.getBiome(pos).unwrapKey().ifPresent(key -> {
+                        ResourceLocation id = key.location();
+                        boolean[] flags = found.computeIfAbsent(id, k -> new boolean[2]);
+                        boolean inside = selMin != null && isInside(pos, selMin, selMax);
+                        if (inside) {
+                            flags[0] = true;
+                        } else {
+                            flags[1] = true;
+                            if (selMin != null) {
+                                BlockPos prev = nearestOutside.get(id);
+                                if (prev == null || distToBox(pos, selMin, selMax) < distToBox(prev, selMin, selMax)) {
+                                    nearestOutside.put(id, pos);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        sendMsg(Component.literal("Biomes:").withStyle(ChatFormatting.YELLOW));
+        if (found.isEmpty()) {
+            sendMsg(Component.literal("  (none)").withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
+        for (var entry : found.entrySet()) {
+            ResourceLocation id = entry.getKey();
+            boolean[] flags = entry.getValue();
+            MutableComponent line = Component.literal("  ").append(clickableId(id));
+            if (selMin != null && !flags[0] && flags[1]) {
+                BlockPos nearest = nearestOutside.get(id);
+                if (nearest != null) {
+                    int dist = (int) Math.ceil(distToBox(nearest, selMin, selMax));
+                    line.append(Component.literal(" (~" + dist + " blocks away)").withStyle(ChatFormatting.DARK_GRAY));
+                }
+            }
+            sendMsg(line);
+        }
+    }
+
+    private static void identifyStructures(Minecraft mc, BlockPos scanMin, BlockPos scanMax,
+            BlockPos selMin, BlockPos selMax) {
+        var server = mc.getSingleplayerServer();
+        if (server == null) {
+            sendMsg(Component.literal("Structures:").withStyle(ChatFormatting.YELLOW));
+            sendMsg(Component.literal("  (requires singleplayer)").withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
+
+        var serverLevel = server.getLevel(mc.level.dimension());
+        if (serverLevel == null) return;
+
+        var registry = serverLevel.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+        var structureManager = serverLevel.structureManager();
+
+        int minCX = scanMin.getX() >> 4, maxCX = scanMax.getX() >> 4;
+        int minCZ = scanMin.getZ() >> 4, maxCZ = scanMax.getZ() >> 4;
+
+        Map<ResourceLocation, BlockPos> positions = new LinkedHashMap<>();
+        Map<ResourceLocation, Boolean> insideMap = new LinkedHashMap<>();
+
+        // Use StructureManager.getStructureAt which resolves both starts AND references,
+        // so we find structures even if their origin chunk is outside the scan area.
+        for (var entry : registry.entrySet()) {
+            ResourceLocation id = entry.getKey().location();
+            boolean found = false;
+            for (int cx = minCX; cx <= maxCX && !found; cx++) {
+                for (int cz = minCZ; cz <= maxCZ && !found; cz++) {
+                    BlockPos sample = new BlockPos(cx * 16 + 8, (scanMin.getY() + scanMax.getY()) / 2, cz * 16 + 8);
+                    var start = structureManager.getStructureAt(sample, entry.getValue());
+                    if (start != null && !start.getPieces().isEmpty()) {
+                        var bb = start.getBoundingBox();
+                        positions.put(id, bb.getCenter());
+                        boolean inside = selMin == null
+                            || (bb.minX() <= selMax.getX() && bb.maxX() >= selMin.getX()
+                                && bb.minY() <= selMax.getY() && bb.maxY() >= selMin.getY()
+                                && bb.minZ() <= selMax.getZ() && bb.maxZ() >= selMin.getZ());
+                        insideMap.put(id, inside);
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        sendMsg(Component.literal("Structures:").withStyle(ChatFormatting.YELLOW));
+        if (positions.isEmpty()) {
+            sendMsg(Component.literal("  (none in loaded chunks)").withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
+        for (var e : positions.entrySet()) {
+            ResourceLocation id = e.getKey();
+            BlockPos center = e.getValue();
+            boolean inside = insideMap.getOrDefault(id, false);
+            MutableComponent line = Component.literal("  ").append(clickableId(id))
+                .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+                .append(clickableCoords(center.getX(), center.getY(), center.getZ()));
+            if (selMin != null && !inside) {
+                int dist = (int) Math.ceil(distToBox(center, selMin, selMax));
+                line.append(Component.literal(" (~" + dist + " blocks away)").withStyle(ChatFormatting.DARK_GRAY));
+            }
+            sendMsg(line);
+        }
+    }
+
+    private static boolean isInside(BlockPos pos, BlockPos min, BlockPos max) {
+        return pos.getX() >= min.getX() && pos.getX() <= max.getX()
+            && pos.getY() >= min.getY() && pos.getY() <= max.getY()
+            && pos.getZ() >= min.getZ() && pos.getZ() <= max.getZ();
+    }
+
+    private static double distToBox(BlockPos pos, BlockPos min, BlockPos max) {
+        int dx = Math.max(0, Math.max(min.getX() - pos.getX(), pos.getX() - max.getX()));
+        int dy = Math.max(0, Math.max(min.getY() - pos.getY(), pos.getY() - max.getY()));
+        int dz = Math.max(0, Math.max(min.getZ() - pos.getZ(), pos.getZ() - max.getZ()));
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    /** Clickable resource ID that copies the full ID string on click. */
+    private static MutableComponent clickableId(ResourceLocation id) {
+        String s = id.toString();
+        return Component.literal(s)
+            .withStyle(style -> style
+                .withClickEvent(new ClickEvent.CopyToClipboard(s))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy: " + s)))
+                .withColor(ChatFormatting.GREEN));
     }
 
     // --- Component helpers ---

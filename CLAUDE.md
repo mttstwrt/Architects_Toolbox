@@ -84,6 +84,7 @@ Client-side commands registered via `ClientCommandRegistrationEvent` (Architectu
 - `/atb clear` — Clear selection
 - `/atb shape <mode>` — Switch shape mode (rectangle/cylinder/ellipsoid/spline/line)
 - `/atb info` — Print selection info with clickable coordinates (copies to clipboard)
+- `/atb identify [radius]` — Scan biomes + structures (clickable IDs); falls back to player pos if no selection
 
 Commands use raw Brigadier builders (`LiteralArgumentBuilder.literal()`) not `Commands.literal()` (which is tied to server `CommandSourceStack`).
 

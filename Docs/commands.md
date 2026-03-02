@@ -41,6 +41,35 @@ Prints the current selection info to chat with **clickable coordinate components
 5. Dimensions (X × Y × Z) and total bounding volume
 6. Block count breakdown (only shown when block counting is enabled)
 
+### `/atb identify [radius]`
+Scans for biomes and structures within the selection area. All IDs are **clickable** (copies the full resource ID to clipboard).
+
+**Fallback behavior:**
+- With selection: scans the selection bounds
+- Without selection: uses the player's current position
+- With optional `radius` (0–256): expands the scan area by that many blocks in all directions
+
+**Biomes** (client-side, works everywhere):
+- Sampled at 4-block intervals (matches biome storage resolution)
+- When using radius with a selection, biomes found only outside the selection show distance
+
+**Structures** (singleplayer only — requires integrated server access):
+- Scans loaded chunks in the area for structure starts
+- Shows structure center position as clickable coordinates
+- Shows distance from selection when the structure is outside the selection bounds
+- On multiplayer servers, displays a notice that structure data is unavailable
+
+**Example output:**
+```
+--- Identify ---
+Search radius: 32
+Biomes:
+  minecraft:plains
+  minecraft:forest (~18 blocks away)
+Structures:
+  minecraft:village at [120, 64, -340]
+```
+
 ## Clickable Coordinates
 
 Coordinate components use `ClickEvent.Action.COPY_TO_CLIPBOARD`. Hovering shows a tooltip with the text to be copied.

@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Architect's Toolbox is a client-side Minecraft mod for measuring, counting, and visualizing block selections with shape modes, clipboard operations, and ghost block previews. Built with **Architectury API** for cross-loader support (Fabric + NeoForge).
 
-- **Minecraft**: 1.21.10 | **Java**: 21 | **Architectury API**: 18.0.6
-- **Fabric Loader**: 0.18.4 | **Fabric API**: 0.138.4+1.21.10 | **NeoForge**: 21.10.50-beta
+- **Minecraft**: 1.21.11 | **Java**: 21 | **Architectury API**: 19.0.1
+- **Fabric Loader**: 0.19.2 | **Fabric API**: 0.141.3+1.21.11 | **NeoForge**: 21.11.42
 - **Mod ID**: `architects_toolbox` | **Package**: `com.ArchitectsToolbox`
 
 ## Build Commands

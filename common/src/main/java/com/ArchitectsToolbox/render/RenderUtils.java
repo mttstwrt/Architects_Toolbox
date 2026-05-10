@@ -7,7 +7,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -75,7 +75,7 @@ public class RenderUtils {
         Minecraft client = Minecraft.getInstance();
         Font font = client.font;
 
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = camera.position();
         double dist = camPos.distanceTo(position);
         if (dist > 256.0) return;
 

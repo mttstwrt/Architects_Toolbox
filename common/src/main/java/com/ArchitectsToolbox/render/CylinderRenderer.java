@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -38,14 +38,14 @@ public class CylinderRenderer implements ShapeRenderer {
         double cx = center.getX() + 0.5;
         double cz = center.getZ() + 0.5;
 
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = camera.position();
 
         PoseStack poseStack = new PoseStack();
         poseStack.mulPose(viewMatrix);
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
         MultiBufferSource.BufferSource source = BUFFER.createSource();
-        VertexConsumer consumer = source.getBuffer(RenderType.lines());
+        VertexConsumer consumer = source.getBuffer(RenderTypes.LINES);
         Matrix4f matrix = poseStack.last().pose();
 
         float r = config.red(), g = config.green(), b = config.blue(), a = config.alpha();

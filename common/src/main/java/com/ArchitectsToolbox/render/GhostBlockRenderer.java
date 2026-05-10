@@ -7,7 +7,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
@@ -80,7 +80,7 @@ public class GhostBlockRenderer {
                                     float alpha, boolean isPreview) {
         if (blocks.isEmpty()) return;
 
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = camera.position();
         Level level = client.level;
         BlockRenderDispatcher blockRenderDispatcher = client.getBlockRenderer();
 
@@ -135,14 +135,14 @@ public class GhostBlockRenderer {
     private void renderGhostBlockOutlines(Camera camera, Matrix4f viewMatrix,
                                            Map<BlockPos, BlockState> blocks,
                                            float r, float g, float b, float a) {
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = camera.position();
 
         PoseStack poseStack = new PoseStack();
         poseStack.mulPose(viewMatrix);
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
         MultiBufferSource.BufferSource source = LINE_BUFFER.createSource();
-        VertexConsumer consumer = source.getBuffer(RenderType.lines());
+        VertexConsumer consumer = source.getBuffer(RenderTypes.LINES);
         Matrix4f matrix = poseStack.last().pose();
 
         Set<BlockPos> blockSet = blocks.keySet();

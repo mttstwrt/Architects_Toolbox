@@ -1,7 +1,7 @@
 package com.ArchitectsToolbox.shapes;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public enum ShapeMode {
     RECTANGLE("rectangle", "architects_toolbox.shape.rectangle"),
@@ -26,7 +26,7 @@ public enum ShapeMode {
         return Component.translatable(translationKey);
     }
 
-    public ResourceLocation getIconTexture() {
-        return ResourceLocation.fromNamespaceAndPath("architects_toolbox", "textures/gui/icons/" + id + ".png");
+    public Identifier getIconTexture() {
+        return Identifier.fromNamespaceAndPath("architects_toolbox", "textures/gui/icons/" + id + ".png");
     }
 }

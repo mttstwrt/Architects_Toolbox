@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class ToolboxCommands {
 
@@ -238,15 +238,15 @@ public class ToolboxCommands {
     private static void identifyBiomes(Minecraft mc, BlockPos scanMin, BlockPos scanMax,
             BlockPos selMin, BlockPos selMax) {
         // Sample at 4-block intervals (matches biome storage resolution)
-        Map<ResourceLocation, boolean[]> found = new LinkedHashMap<>();
-        Map<ResourceLocation, BlockPos> nearestOutside = new LinkedHashMap<>();
+        Map<Identifier, boolean[]> found = new LinkedHashMap<>();
+        Map<Identifier, BlockPos> nearestOutside = new LinkedHashMap<>();
 
         for (int x = scanMin.getX(); x <= scanMax.getX(); x += 4) {
             for (int z = scanMin.getZ(); z <= scanMax.getZ(); z += 4) {
                 for (int y = scanMin.getY(); y <= scanMax.getY(); y += 4) {
                     BlockPos pos = new BlockPos(x, y, z);
                     mc.level.getBiome(pos).unwrapKey().ifPresent(key -> {
-                        ResourceLocation id = key.location();
+                        Identifier id = key.identifier();
                         boolean[] flags = found.computeIfAbsent(id, k -> new boolean[2]);
                         boolean inside = selMin != null && isInside(pos, selMin, selMax);
                         if (inside) {
@@ -271,7 +271,7 @@ public class ToolboxCommands {
             return;
         }
         for (var entry : found.entrySet()) {
-            ResourceLocation id = entry.getKey();
+            Identifier id = entry.getKey();
             boolean[] flags = entry.getValue();
             MutableComponent line = Component.literal("  ").append(clickableId(id));
             if (selMin != null && !flags[0] && flags[1]) {
@@ -303,13 +303,13 @@ public class ToolboxCommands {
         int minCX = scanMin.getX() >> 4, maxCX = scanMax.getX() >> 4;
         int minCZ = scanMin.getZ() >> 4, maxCZ = scanMax.getZ() >> 4;
 
-        Map<ResourceLocation, BlockPos> positions = new LinkedHashMap<>();
-        Map<ResourceLocation, Boolean> insideMap = new LinkedHashMap<>();
+        Map<Identifier, BlockPos> positions = new LinkedHashMap<>();
+        Map<Identifier, Boolean> insideMap = new LinkedHashMap<>();
 
         // Use StructureManager.getStructureAt which resolves both starts AND references,
         // so we find structures even if their origin chunk is outside the scan area.
         for (var entry : registry.entrySet()) {
-            ResourceLocation id = entry.getKey().location();
+            Identifier id = entry.getKey().identifier();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {
@@ -335,7 +335,7 @@ public class ToolboxCommands {
             return;
         }
         for (var e : positions.entrySet()) {
-            ResourceLocation id = e.getKey();
+            Identifier id = e.getKey();
             BlockPos center = e.getValue();
             boolean inside = insideMap.getOrDefault(id, false);
             MutableComponent line = Component.literal("  ").append(clickableId(id))
@@ -363,7 +363,7 @@ public class ToolboxCommands {
     }
 
     /** Clickable resource ID that copies the full ID string on click. */
-    private static MutableComponent clickableId(ResourceLocation id) {
+    private static MutableComponent clickableId(Identifier id) {
         String s = id.toString();
         return Component.literal(s)
             .withStyle(style -> style

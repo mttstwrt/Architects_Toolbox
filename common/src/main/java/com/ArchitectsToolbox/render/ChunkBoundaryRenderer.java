@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
@@ -26,14 +26,14 @@ public class ChunkBoundaryRenderer implements ShapeRenderer {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
 
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = camera.position();
         ChunkPos playerChunk = new ChunkPos(client.player.blockPosition());
 
         PoseStack poseStack = new PoseStack();
         poseStack.mulPose(viewMatrix);
 
         MultiBufferSource.BufferSource source = BUFFER.createSource();
-        VertexConsumer consumer = source.getBuffer(RenderType.lines());
+        VertexConsumer consumer = source.getBuffer(RenderTypes.LINES);
         Matrix4f matrix = poseStack.last().pose();
 
         // Colors for different boundary types

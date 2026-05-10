@@ -13,7 +13,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.lwjgl.glfw.GLFW;
@@ -22,7 +22,7 @@ public class ArchitectsToolboxClient {
     private static final ArchitectsToolboxClient INSTANCE = new ArchitectsToolboxClient();
 
     private static final KeyMapping.Category KEY_CATEGORY = KeyMapping.Category.register(
-        ResourceLocation.fromNamespaceAndPath("architects_toolbox", "main")
+        Identifier.fromNamespaceAndPath("architects_toolbox", "main")
     );
     private static final String KEY_MEASURE = "key.architects_toolbox.measure";
     public static final KeyMapping KEY_BINDING_MEASURE = new KeyMapping(

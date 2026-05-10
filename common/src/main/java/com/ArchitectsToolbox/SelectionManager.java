@@ -20,6 +20,8 @@ public class SelectionManager {
     private boolean blockCountingEnabled = false;
     private boolean hollowMode = false;
     private boolean chunkBoundariesEnabled = false;
+    private boolean structureBoundsEnabled = false;
+    private boolean biomeBordersEnabled = false;
     private boolean layerModeEnabled = false;
     private int currentLayer = 0;
     private BlockPos cachedMinPos = null;
@@ -269,6 +271,30 @@ public class SelectionManager {
 
     public void toggleChunkBoundaries() {
         this.chunkBoundariesEnabled = !this.chunkBoundariesEnabled;
+    }
+
+    public boolean isStructureBoundsEnabled() {
+        return structureBoundsEnabled;
+    }
+
+    public void setStructureBoundsEnabled(boolean enabled) {
+        this.structureBoundsEnabled = enabled;
+    }
+
+    public void toggleStructureBounds() {
+        this.structureBoundsEnabled = !this.structureBoundsEnabled;
+    }
+
+    public boolean isBiomeBordersEnabled() {
+        return biomeBordersEnabled;
+    }
+
+    public void setBiomeBordersEnabled(boolean enabled) {
+        this.biomeBordersEnabled = enabled;
+    }
+
+    public void toggleBiomeBorders() {
+        this.biomeBordersEnabled = !this.biomeBordersEnabled;
     }
 
     public boolean isLayerModeEnabled() {

@@ -17,6 +17,8 @@ public class MeasurementRenderer {
     private final Map<ShapeMode, ShapeRenderer> renderers = new EnumMap<>(ShapeMode.class);
     private final SubdivisionRenderer subdivisionRenderer = new SubdivisionRenderer();
     private final ChunkBoundaryRenderer chunkBoundaryRenderer = new ChunkBoundaryRenderer();
+    private final StructureBoundsRenderer structureBoundsRenderer = new StructureBoundsRenderer();
+    private final BiomeBorderRenderer biomeBorderRenderer = new BiomeBorderRenderer();
     private final HollowShapeRenderer hollowShapeRenderer = new HollowShapeRenderer();
     private final GhostBlockRenderer ghostBlockRenderer = new GhostBlockRenderer();
 
@@ -76,6 +78,16 @@ public class MeasurementRenderer {
         // Chunk boundaries render independently of selection
         if (selection.isChunkBoundariesEnabled()) {
             chunkBoundaryRenderer.render(camera, viewMatrix, selectedBlocks, config);
+        }
+
+        // Structure bounding boxes (singleplayer only)
+        if (selection.isStructureBoundsEnabled()) {
+            structureBoundsRenderer.render(camera, viewMatrix, selectedBlocks, config);
+        }
+
+        // Biome borders
+        if (selection.isBiomeBordersEnabled()) {
+            biomeBorderRenderer.render(camera, viewMatrix, selectedBlocks, config);
         }
     }
 

@@ -68,12 +68,17 @@ Config uses `Platform.getConfigFolder()` (not ServiceLoader). No platform-specif
 
 - **Singletons**: All managers use eager `private static final INSTANCE = new ...()` (except ModConfig which is lazy)
 - **Renderer interface**: `ShapeRenderer.render(Camera, Matrix4f, List<BlockPos>, RenderConfig)`
-- **Caching**: SelectionManager (bounds), BlockCounter (100ms TTL), HollowShapeRenderer (selection-change), GhostBlockRenderer (vertex data)
+- **Caching**: SelectionManager (bounds), BlockCounter (100ms TTL), HollowShapeRenderer (selection-change), GhostBlockRenderer (vertex data), StructureBoundsRenderer (2s TTL + chunk change), BiomeBorderRenderer (4-block move threshold)
 - **Buffer allocation**: Renderers maintain reusable `ByteBufferBuilder` instances
 
 ## Rendering Pipeline
 
 `WorldRendererMixin` -> `MeasurementRenderer.render()` -> shape-specific `ShapeRenderer` -> `RenderUtils.drawLine()`/`drawBox()`/`renderFloatingText()`
+
+Overlay renderers (toggled via radial menu, dispatched from `MeasurementRenderer`):
+- **ChunkBoundaryRenderer** — chunk grid wireframes (yellow/blue)
+- **StructureBoundsRenderer** — structure bounding boxes with ID labels (orange, singleplayer only)
+- **BiomeBorderRenderer** — vertical border lines at biome transitions with biome name labels (cyan)
 
 ## Commands
 

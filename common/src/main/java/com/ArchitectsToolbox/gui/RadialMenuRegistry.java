@@ -446,6 +446,59 @@ public class RadialMenuRegistry {
             }
         });
 
+        // Structure Bounds Toggle (singleplayer only)
+        register(new RadialMenuAction() {
+            @Override
+            public Component getName() {
+                boolean enabled = SelectionManager.getInstance().isStructureBoundsEnabled();
+                return Component.literal(enabled ? "Structs: On" : "Structs: Off");
+            }
+
+            @Override
+            public void execute() {
+                SelectionManager.getInstance().toggleStructureBounds();
+            }
+
+            @Override
+            public boolean isEnabled() {
+                return Minecraft.getInstance().getSingleplayerServer() != null;
+            }
+
+            @Override
+            public int getColor() {
+                if (Minecraft.getInstance().getSingleplayerServer() == null) {
+                    return 0x888888;
+                }
+                return SelectionManager.getInstance().isStructureBoundsEnabled()
+                    ? 0xFFA033 : 0xFFFFFF;
+            }
+        });
+
+        // Biome Borders Toggle
+        register(new RadialMenuAction() {
+            @Override
+            public Component getName() {
+                boolean enabled = SelectionManager.getInstance().isBiomeBordersEnabled();
+                return Component.literal(enabled ? "Biomes: On" : "Biomes: Off");
+            }
+
+            @Override
+            public void execute() {
+                SelectionManager.getInstance().toggleBiomeBorders();
+            }
+
+            @Override
+            public boolean isEnabled() {
+                return true;
+            }
+
+            @Override
+            public int getColor() {
+                return SelectionManager.getInstance().isBiomeBordersEnabled()
+                    ? 0x00CCFF : 0xFFFFFF;
+            }
+        });
+
         // Undo
         register(new RadialMenuAction() {
             @Override

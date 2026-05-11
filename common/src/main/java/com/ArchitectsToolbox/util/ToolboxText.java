@@ -21,8 +21,8 @@ public final class ToolboxText {
     public static MutableComponent clickableCopy(String display, String copyValue, Component hoverText, ChatFormatting color) {
         return Component.literal(display)
             .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(copyValue))
-                .withHoverEvent(new HoverEvent.ShowText(hoverText))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, copyValue))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverText))
                 .withColor(color));
     }
 }

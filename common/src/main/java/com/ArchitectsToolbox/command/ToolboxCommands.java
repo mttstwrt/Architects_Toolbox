@@ -216,8 +216,8 @@ public class ToolboxCommands {
         }
 
         // Clamp Y to world bounds
-        int minY = mc.level.getMinY();
-        int maxY = mc.level.getMaxY();
+        int minY = mc.level.getMinBuildHeight();
+        int maxY = mc.level.getMaxBuildHeight();
         scanMin = new BlockPos(scanMin.getX(), Math.max(minY, scanMin.getY()), scanMin.getZ());
         scanMax = new BlockPos(scanMax.getX(), Math.min(maxY, scanMax.getY()), scanMax.getZ());
 
@@ -308,13 +308,13 @@ public class ToolboxCommands {
 
         // Use StructureManager.getStructureAt which resolves both starts AND references,
         // so we find structures even if their origin chunk is outside the scan area.
-        for (var entry : registry.entrySet()) {
-            ResourceLocation id = entry.getKey().location();
+        for (var ref : registry.listElements().toList()) {
+            ResourceLocation id = ref.key().location();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {
                     BlockPos sample = new BlockPos(cx * 16 + 8, (scanMin.getY() + scanMax.getY()) / 2, cz * 16 + 8);
-                    var start = structureManager.getStructureAt(sample, entry.getValue());
+                    var start = structureManager.getStructureAt(sample, ref.value());
                     if (start != null && !start.getPieces().isEmpty()) {
                         var bb = start.getBoundingBox();
                         positions.put(id, bb.getCenter());
@@ -367,8 +367,8 @@ public class ToolboxCommands {
         String s = id.toString();
         return Component.literal(s)
             .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(s))
-                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy: " + s)))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, s))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to copy: " + s)))
                 .withColor(ChatFormatting.GREEN));
     }
 
@@ -379,8 +379,8 @@ public class ToolboxCommands {
         String copyStr = x + " " + y + " " + z;
         return Component.literal("[" + x + ", " + y + ", " + z + "]")
             .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(copyStr))
-                .withHoverEvent(new HoverEvent.ShowText(
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, copyStr))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
                     Component.literal("Click to copy: " + copyStr)))
                 .withColor(ChatFormatting.GREEN));
     }
@@ -393,8 +393,8 @@ public class ToolboxCommands {
             + "  \u2192  " + max.getX() + ", " + max.getY() + ", " + max.getZ() + "]";
         return Component.literal(display)
             .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(copyStr))
-                .withHoverEvent(new HoverEvent.ShowText(
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, copyStr))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
                     Component.literal("Click to copy both corners:\n" + copyStr)))
                 .withColor(ChatFormatting.AQUA));
     }

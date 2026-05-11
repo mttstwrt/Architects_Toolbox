@@ -96,8 +96,8 @@ public class BiomeBorderRenderer implements ShapeRenderer {
         int centerZ = (int) Math.floor(playerPos.z);
 
         // Y range: player ± 32, clamped to world bounds
-        int minY = Math.max(level.getMinY(), playerY - 32);
-        int maxY = Math.min(level.getMaxY(), playerY + 32);
+        int minY = Math.max(level.getMinBuildHeight(), playerY - 32);
+        int maxY = Math.min(level.getMaxBuildHeight(), playerY + 32);
 
         int scanMinX = centerX - SCAN_RADIUS;
         int scanMaxX = centerX + SCAN_RADIUS;

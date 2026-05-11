@@ -111,7 +111,7 @@ public class StructureBoundsRenderer implements ShapeRenderer {
         Set<String> seen = new HashSet<>();
 
         for (var entry : RegistryHelpers.entries(registry)) {
-            Identifier id = entry.getKey();
+            ResourceLocation id = entry.getKey();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {

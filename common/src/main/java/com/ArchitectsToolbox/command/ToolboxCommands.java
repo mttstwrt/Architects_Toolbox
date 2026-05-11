@@ -309,7 +309,7 @@ public class ToolboxCommands {
         // Use StructureManager.getStructureAt which resolves both starts AND references,
         // so we find structures even if their origin chunk is outside the scan area.
         for (var entry : RegistryHelpers.entries(registry)) {
-            Identifier id = entry.getKey();
+            ResourceLocation id = entry.getKey();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {

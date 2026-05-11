@@ -1,5 +1,6 @@
 package com.ArchitectsToolbox.render;
 
+import com.ArchitectsToolbox.util.RegistryHelpers;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -109,8 +110,8 @@ public class StructureBoundsRenderer implements ShapeRenderer {
         List<StructureEntry> results = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
-        for (var ref : registry.listElements().toList()) {
-            ResourceLocation id = ref.key().location();
+        for (var entry : RegistryHelpers.entries(registry)) {
+            Identifier id = entry.getKey();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {

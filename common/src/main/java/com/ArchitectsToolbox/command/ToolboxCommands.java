@@ -14,9 +14,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.ClickEvent;
+import com.ArchitectsToolbox.util.RegistryHelpers;
+import com.ArchitectsToolbox.util.ToolboxText;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayList;
@@ -308,8 +308,8 @@ public class ToolboxCommands {
 
         // Use StructureManager.getStructureAt which resolves both starts AND references,
         // so we find structures even if their origin chunk is outside the scan area.
-        for (var entry : registry.entrySet()) {
-            ResourceLocation id = entry.getKey().location();
+        for (var entry : RegistryHelpers.entries(registry)) {
+            Identifier id = entry.getKey();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {
@@ -365,11 +365,7 @@ public class ToolboxCommands {
     /** Clickable resource ID that copies the full ID string on click. */
     private static MutableComponent clickableId(ResourceLocation id) {
         String s = id.toString();
-        return Component.literal(s)
-            .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(s))
-                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy: " + s)))
-                .withColor(ChatFormatting.GREEN));
+        return ToolboxText.clickableCopy(s, s, "Click to copy: " + s, ChatFormatting.GREEN);
     }
 
     // --- Component helpers ---
@@ -377,12 +373,8 @@ public class ToolboxCommands {
     /** Clickable [x, y, z] that copies "x y z" to clipboard on click. */
     private static MutableComponent clickableCoords(int x, int y, int z) {
         String copyStr = x + " " + y + " " + z;
-        return Component.literal("[" + x + ", " + y + ", " + z + "]")
-            .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(copyStr))
-                .withHoverEvent(new HoverEvent.ShowText(
-                    Component.literal("Click to copy: " + copyStr)))
-                .withColor(ChatFormatting.GREEN));
+        String display = "[" + x + ", " + y + ", " + z + "]";
+        return ToolboxText.clickableCopy(display, copyStr, "Click to copy: " + copyStr, ChatFormatting.GREEN);
     }
 
     /** Clickable range that copies "x1 y1 z1 x2 y2 z2" to clipboard on click. */
@@ -391,12 +383,7 @@ public class ToolboxCommands {
             + " " + max.getX() + " " + max.getY() + " " + max.getZ();
         String display = "[" + min.getX() + ", " + min.getY() + ", " + min.getZ()
             + "  \u2192  " + max.getX() + ", " + max.getY() + ", " + max.getZ() + "]";
-        return Component.literal(display)
-            .withStyle(style -> style
-                .withClickEvent(new ClickEvent.CopyToClipboard(copyStr))
-                .withHoverEvent(new HoverEvent.ShowText(
-                    Component.literal("Click to copy both corners:\n" + copyStr)))
-                .withColor(ChatFormatting.AQUA));
+        return ToolboxText.clickableCopy(display, copyStr, "Click to copy both corners:\n" + copyStr, ChatFormatting.AQUA);
     }
 
     private static void sendMsg(Component component) {

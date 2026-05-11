@@ -111,12 +111,12 @@ public class StructureBoundsRenderer implements ShapeRenderer {
         Set<String> seen = new HashSet<>();
 
         for (var entry : RegistryHelpers.entries(registry)) {
-            Identifier id = entry.getKey();
+            ResourceLocation id = entry.getKey();
             boolean found = false;
             for (int cx = minCX; cx <= maxCX && !found; cx++) {
                 for (int cz = minCZ; cz <= maxCZ && !found; cz++) {
                     BlockPos sample = new BlockPos(cx * 16 + 8, midY, cz * 16 + 8);
-                    var start = structureManager.getStructureAt(sample, ref.value());
+                    var start = structureManager.getStructureAt(sample, entry.getValue());
                     if (start != null && !start.getPieces().isEmpty()) {
                         BoundingBox bb = start.getBoundingBox();
                         // Deduplicate: same structure type at same origin

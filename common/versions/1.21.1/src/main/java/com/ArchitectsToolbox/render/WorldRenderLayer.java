@@ -31,7 +31,8 @@ import org.joml.Matrix4f;
 public final class WorldRenderLayer {
     private static final Direction[] DIRECTIONS = Direction.values();
     private static final int LABEL_BACKGROUND = 0x40000000;
-    private static final float LABEL_SCALE = 0.025f;
+    /** Labels further than this are not drawn. */
+    private static final double LABEL_RANGE = 256.0;
 
     private static WorldScene scene = WorldScene.EMPTY;
     /** The model quads of each shown ghost mesh, prepared when the mesh is first drawn. */
@@ -72,16 +73,26 @@ public final class WorldRenderLayer {
         buffers.endBatch(RenderType.translucentMovingBlock());
 
         for (WorldLabel label : current.labels()) {
+            double distance = label.pos().distanceTo(cam);
+            if (distance > LABEL_RANGE) {
+                continue;
+            }
+            float scale = labelScale(distance);
             poseStack.pushPose();
             poseStack.translate(label.pos().x - cam.x, label.pos().y - cam.y, label.pos().z - cam.z);
             poseStack.mulPose(camera.rotation());
-            poseStack.scale(LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
+            poseStack.scale(scale, -scale, scale);
             FormattedCharSequence text = label.text().getVisualOrderText();
             minecraft.font.drawInBatch(text, -minecraft.font.width(text) / 2.0f, 0.0f, label.argb(), false, poseStack.last().pose(),
                     buffers, Font.DisplayMode.SEE_THROUGH, LABEL_BACKGROUND, LightTexture.FULL_BRIGHT);
             poseStack.popPose();
         }
         buffers.endBatch();
+    }
+
+    /** Larger further away, so labels stay readable, as in 1.0.0. */
+    private static float labelScale(double distance) {
+        return (float) Math.clamp(0.015 + 0.002 * distance, 0.02, 0.08);
     }
 
     private static void putLines(LineMesh mesh, PoseStack.Pose pose, VertexConsumer buffer) {

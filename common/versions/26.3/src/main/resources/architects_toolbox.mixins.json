@@ -3,6 +3,7 @@
   "package": "com.ArchitectsToolbox.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "ClientLevelMixin",
     "LevelRendererMixin"
   ],
   "injectors": {

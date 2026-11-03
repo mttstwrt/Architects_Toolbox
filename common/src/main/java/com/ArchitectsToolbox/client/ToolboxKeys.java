@@ -2,6 +2,7 @@ package com.ArchitectsToolbox.client;
 
 import com.ArchitectsToolbox.ArchitectsToolbox;
 import com.mojang.blaze3d.platform.InputConstants;
+import java.util.List;
 import net.minecraft.client.KeyMapping;
 //? if >=26.1 {
 import net.minecraft.resources.Identifier;
@@ -20,6 +21,10 @@ public final class ToolboxKeys {
     public static final String CATEGORY = "key.category." + ArchitectsToolbox.MOD_ID + ".main";
     *///?}
     public static final KeyMapping MEASURE = new KeyMapping("key.architects_toolbox.measure", InputConstants.KEY_G, CATEGORY);
+    /** Steps the layer view; 1.0.0 had these on the arrow keys, unbindable. */
+    public static final KeyMapping LAYER_UP = new KeyMapping("key.architects_toolbox.layer_up", InputConstants.KEY_UP, CATEGORY);
+    public static final KeyMapping LAYER_DOWN = new KeyMapping("key.architects_toolbox.layer_down", InputConstants.KEY_DOWN, CATEGORY);
+    public static final List<KeyMapping> ALL = List.of(MEASURE, LAYER_UP, LAYER_DOWN);
 
     private ToolboxKeys() {
     }

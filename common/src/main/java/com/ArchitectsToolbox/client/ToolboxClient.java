@@ -1,7 +1,5 @@
 package com.ArchitectsToolbox.client;
 
-import com.ArchitectsToolbox.render.RenderProbe;
-import com.ArchitectsToolbox.render.WorldRenderLayer;
 import java.nio.file.Path;
 import net.minecraft.client.Minecraft;
 
@@ -10,13 +8,17 @@ import net.minecraft.client.Minecraft;
  * entry point, which ticks it on the client thread.
  */
 public final class ToolboxClient {
-    private final RenderProbe probe;
+    private final ToolboxConfig config;
 
     public ToolboxClient(Path configFile) {
-        this.probe = new RenderProbe(ToolboxConfig.load(configFile).ghostOpacity());
+        this.config = ToolboxConfig.load(configFile);
     }
 
+    public ToolboxConfig config() {
+        return config;
+    }
+
+    /** Nothing to do until the measurements arrive in ATB-013. */
     public void tick(Minecraft minecraft) {
-        WorldRenderLayer.show(probe.update(minecraft));
     }
 }

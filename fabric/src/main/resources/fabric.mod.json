@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "architects_toolbox",
+  "version": "${version}",
+  "name": "Architect's Toolbox",
+  "description": "Measurement, visualization, and clipboard tools for Minecraft builders",
+  "authors": [
+    "ArchitectsToolbox"
+  ],
+  "license": "All Rights Reserved",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.ArchitectsToolbox.fabric.ArchitectsToolboxFabric"
+    ]
+  },
+  "mixins": [
+    "architects_toolbox.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "${fabric_loader_range}",
+    "minecraft": "${minecraft_version}",
+    "java": ">=${java_version}",
+    "fabric-api": "*"
+  }
+}

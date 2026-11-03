@@ -1,0 +1,28 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.architectury.dev/' }
+        maven { url = 'https://maven.neoforged.net/releases/' }
+        maven { url = 'https://maven.kikugie.dev/releases' }
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'dev.kikugie.stonecutter' version '0.9.8'
+}
+
+rootProject.name = 'architects_toolbox'
+
+// One Gradle project per Minecraft version in each branch: :common:1.21.1, :neoforge:26.3, ...
+// Shared sources stay in <branch>/src; sources for one version only go in <branch>/versions/<mc>/src.
+// Pins per version are in versions/<mc>.properties.
+stonecutter {
+    create(rootProject) {
+        vcsVersion.set('26.3')
+        branch('common') { versions('1.21.1', '26.3') }
+        providers.gradleProperty('enabled_platforms').get().split(',').each { loader ->
+            branch(loader.trim()) { versions('1.21.1', '26.3') }
+        }
+    }
+}

@@ -1,0 +1,118 @@
+plugins {
+    id 'dev.kikugie.stonecutter'
+    // One artifact holds both plugin ids: `dev.architectury.loom` (obfuscated versions, 1.21.1) and
+    // `dev.architectury.loom-no-remap` (26.1 on). Each version node applies the one it needs.
+    id 'dev.architectury.loom' version '1.17.493' apply false
+    id 'architectury-plugin' version '3.5.170' apply false
+    id 'com.gradleup.shadow' version '9.4.3' apply false
+}
+
+// The version the sources are written for in git. Switching it rewrites the sources in place; building another
+// version does not (it compiles a processed copy under build/generated/stonecutter).
+stonecutter.active '26.3'
+
+// Renames between versions, for every node. Git holds the names of the active version; each node rewrites them
+// to its own, both ways, so they survive switching. One-off differences use //? comments in the source instead.
+stonecutter.parameters {
+    def obfuscated = eval(current.version, '<26.1')
+    // 26.1 renamed ResourceLocation to Identifier.
+    replacements.regex(obfuscated) {
+        replace('\\bIdentifier\\b', 'ResourceLocation')
+        reverse('\\bResourceLocation\\b', 'Identifier')
+    }
+}
+
+allprojects {
+    group = rootProject.maven_group
+    version = rootProject.mod_version
+}
+
+// Version nodes are :<branch>:<mc>; the branch projects (:common, :neoforge, :fabric) only group them.
+configure(subprojects.findAll { it.parent != rootProject }) {
+    def pins = new Properties()
+    rootProject.file("versions/${name}.properties").withInputStream { pins.load(it) }
+    pins.each { k, v -> ext.set(k, v) }
+
+    // Minecraft is not obfuscated from 26.1 on.
+    def obfuscated = (name.tokenize('.')[0] as int) < 26
+    ext.obfuscated = obfuscated
+
+    apply plugin: obfuscated ? 'dev.architectury.loom' : 'dev.architectury.loom-no-remap'
+    apply plugin: 'architectury-plugin'
+
+    architectury {
+        minecraft = project.minecraft_version
+    }
+
+    base {
+        archivesName = "$rootProject.archives_name-${parent.name}"
+    }
+
+    repositories {
+        maven {
+            name = 'NeoForged'
+            url = 'https://maven.neoforged.net/releases/'
+        }
+    }
+
+    if (obfuscated) {
+        loom {
+            silentMojangMappingsLicense()
+        }
+    }
+
+    dependencies {
+        if (obfuscated) {
+            minecraft "net.minecraft:minecraft:$project.minecraft_version"
+            mappings loom.officialMojangMappings()
+            // 1.21.1 does not ship jspecify; compile-only keeps the sources the same as on newer versions.
+            compileOnly 'org.jspecify:jspecify:1.0.0'
+        } else {
+            minecraft "com.mojang:minecraft:$project.minecraft_version"
+        }
+    }
+
+    loom.runs.named('client') {
+        // 26.3 starts on OpenGL unless told otherwise; -PgraphicsBackend=VULKAN is the Vulkan start check.
+        if (!obfuscated && rootProject.hasProperty('graphicsBackend')) {
+            programArgs '--graphicsBackend', rootProject.property('graphicsBackend')
+        }
+        // Straight into a prepared save, -PquickPlay=<save name>.
+        if (rootProject.hasProperty('quickPlay')) {
+            programArgs '--quickPlaySingleplayer', rootProject.property('quickPlay')
+        }
+    }
+
+    // Gradle runs on one JDK (25); the 1.21.1 game runs on Java 21, so its run tasks get their own launcher.
+    if (obfuscated) {
+        tasks.withType(JavaExec).configureEach {
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(project.java_version as int)
+            }
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        it.options.encoding = 'UTF-8'
+        it.options.release = project.java_version as int
+    }
+}
+
+// `common` must not touch loader APIs: those stay in the loader branches.
+tasks.register('checkCommonPurity') {
+    group = 'verification'
+    description = 'Fails if common sources import Fabric or NeoForge APIs.'
+    def sources = fileTree('common') { include 'src/**/*.java', 'versions/*/src/**/*.java' }
+    inputs.files(sources)
+    doLast {
+        def banned = ~/(?m)^\s*import\s+(static\s+)?net\.(fabricmc|neoforged)\./
+        def offenders = sources.files.findAll { it.text =~ banned }
+        if (!offenders.isEmpty()) {
+            throw new GradleException("Loader imports in common:\n" + offenders.collect { "  " + it }.join('\n'))
+        }
+    }
+}
+
+subprojects {
+    tasks.matching { it.name == 'check' }.configureEach { dependsOn rootProject.tasks.named('checkCommonPurity') }
+}

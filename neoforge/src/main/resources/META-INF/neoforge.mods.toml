@@ -1,0 +1,29 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "architects_toolbox"
+version = "${version}"
+displayName = "Architect's Toolbox"
+authors = "ArchitectsToolbox"
+description = '''
+Measurement, visualization, and clipboard tools for Minecraft builders
+'''
+
+[[mixins]]
+config = "architects_toolbox.mixins.json"
+
+[[dependencies.architects_toolbox]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neoforge_range}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.architects_toolbox]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_range}"
+ordering = "NONE"
+side = "CLIENT"

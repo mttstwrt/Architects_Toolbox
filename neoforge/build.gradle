@@ -1,0 +1,73 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+version = "${rootProject.mod_version}+mc${project.minecraft_version}-neoforge"
+
+architectury {
+    platformSetupLoomIde()
+    neoForge()
+}
+
+configurations {
+    common {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentNeoForge.extendsFrom common
+
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    neoForge "net.neoforged:neoforge:$project.neoforge_version"
+
+    // The same Minecraft version's node of the common branch.
+    def commonNode = ":common:$project.name"
+    common(project(path: commonNode, configuration: obfuscated ? 'namedElements' : 'default')) { transitive = false }
+    shadowBundle(project(path: commonNode, configuration: 'transformProductionNeoForge')) { transitive = false }
+}
+
+processResources {
+    def props = [version: project.version, neoforge_range: project.neoforge_range, minecraft_range: project.minecraft_range]
+    inputs.properties props
+
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand props
+    }
+}
+
+if (obfuscated) {
+    shadowJar {
+        configurations = [project.configurations.shadowBundle]
+        archiveClassifier = 'dev-shadow'
+    }
+
+    // Obfuscated versions: the shipped jar is the shadow jar remapped to the names the loader runs on.
+    remapJar {
+        inputFile.set shadowJar.archiveFile
+    }
+} else {
+    // The game is not obfuscated from 26.1 on, so there is no remapJar: the shipped jar is the shadow jar.
+    jar {
+        archiveClassifier = 'raw'
+    }
+
+    shadowJar {
+        exclude 'fabric.mod.json'
+        exclude 'architectury.common.json'
+
+        dependsOn jar
+        mainSpec.sourcePaths.clear()
+        from(zipTree(jar.archiveFile))
+        configurations = [project.configurations.shadowBundle]
+        archiveClassifier = null
+    }
+
+    assemble.dependsOn shadowJar
+}

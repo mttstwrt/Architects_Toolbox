@@ -1,13 +1,14 @@
 package com.ArchitectsToolbox.measure;
 
 /**
- * How measurements are shown: hollow, a single layer, the block count. Views are not edits, so undo leaves them
+ * How measurements are shown: hollow, a single layer, the block count, the next-point preview. Views are not edits, so undo leaves them
  * alone. Client thread only.
  */
 public final class ViewSettings {
     private boolean hollow;
     private boolean layer;
     private boolean count;
+    private boolean preview = true;
     /** The layer shown, as a world Y; kept inside the measurement by whoever shows it. */
     private int layerY;
     private int version;
@@ -22,6 +23,10 @@ public final class ViewSettings {
 
     public boolean count() {
         return count;
+    }
+
+    public boolean preview() {
+        return preview;
     }
 
     public int layerY() {
@@ -46,6 +51,11 @@ public final class ViewSettings {
 
     public void toggleCount() {
         count = !count;
+        version++;
+    }
+
+    public void togglePreview() {
+        preview = !preview;
         version++;
     }
 

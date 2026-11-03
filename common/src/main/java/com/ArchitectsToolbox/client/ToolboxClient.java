@@ -58,7 +58,7 @@ public final class ToolboxClient {
         BlockPos target = ClientCompat.screen(minecraft) == null ? MeasureInput.target(minecraft) : null;
         List<Measurement> shown = active.isEmpty() ? List.of() : List.of(active);
         scenes.request(new MeasurementScene.Input(shown, views.hollow(), views.layer() && !active.isEmpty() ? views.layerY() : null,
-                MeasurementScene.preview(active, target)));
+                views.preview() ? MeasurementScene.preview(active, target) : null));
         MeasurementScene.Result result = scenes.take();
         if (result != null) {
             WorldRenderLayer.show(result.scene());

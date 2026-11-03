@@ -12,7 +12,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The mod's keys, read every client tick. The measure key: a tap adds the targeted block, holding it opens the
- * wheel, which the wheel screen closes on release. The layer keys step the layer view. Client thread.
+ * wheel, which the wheel screen closes on release. The layer keys step the layer view; the preview key turns the
+ * next-point preview on and off. Client thread.
  */
 final class MeasureInput {
     /** Held longer than this, in milliseconds, the measure key opens the wheel. */
@@ -63,6 +64,13 @@ final class MeasureInput {
         }
         while (ToolboxKeys.LAYER_DOWN.consumeClick()) {
             stepLayer(minecraft, -1, noScreen);
+        }
+        while (ToolboxKeys.TOGGLE_PREVIEW.consumeClick()) {
+            if (noScreen) {
+                operations.togglePreview();
+                ClientCompat.actionBar(minecraft, Component.translatable("architects_toolbox.wheel.preview",
+                        Component.translatable(operations.views().preview() ? "architects_toolbox.wheel.on" : "architects_toolbox.wheel.off")));
+            }
         }
     }
 

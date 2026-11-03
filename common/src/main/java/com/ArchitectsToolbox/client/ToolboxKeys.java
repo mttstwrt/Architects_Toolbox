@@ -24,7 +24,9 @@ public final class ToolboxKeys {
     /** Steps the layer view; 1.0.0 had these on the arrow keys, unbindable. */
     public static final KeyMapping LAYER_UP = new KeyMapping("key.architects_toolbox.layer_up", InputConstants.KEY_UP, CATEGORY);
     public static final KeyMapping LAYER_DOWN = new KeyMapping("key.architects_toolbox.layer_down", InputConstants.KEY_DOWN, CATEGORY);
-    public static final List<KeyMapping> ALL = List.of(MEASURE, LAYER_UP, LAYER_DOWN);
+    /** Turns the next-point preview on and off; unbound by default, the wheel's Display page has it too. */
+    public static final KeyMapping TOGGLE_PREVIEW = new KeyMapping("key.architects_toolbox.toggle_preview", InputConstants.UNKNOWN.getValue(), CATEGORY);
+    public static final List<KeyMapping> ALL = List.of(MEASURE, LAYER_UP, LAYER_DOWN, TOGGLE_PREVIEW);
 
     private ToolboxKeys() {
     }

@@ -3,6 +3,7 @@
     "key.architects_toolbox.measure": "Measure/Select Block",
     "key.architects_toolbox.layer_up": "Layer Up",
     "key.architects_toolbox.layer_down": "Layer Down",
+    "key.architects_toolbox.toggle_preview": "Toggle Next-Point Preview",
 
     "architects_toolbox.shape.rectangle": "Rectangle",
     "architects_toolbox.shape.cylinder": "Cylinder",
@@ -49,6 +50,7 @@
     "architects_toolbox.wheel.count": "Count: %s",
     "architects_toolbox.wheel.hollow": "Hollow: %s",
     "architects_toolbox.wheel.layer": "Layer: %s",
+    "architects_toolbox.wheel.preview": "Preview: %s",
     "architects_toolbox.wheel.on": "On",
     "architects_toolbox.wheel.off": "Off",
     "architects_toolbox.wheel.shape_option.rectangle": "%s ÷%s",

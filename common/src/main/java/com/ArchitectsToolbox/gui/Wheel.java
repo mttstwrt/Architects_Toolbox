@@ -71,7 +71,8 @@ public final class Wheel {
             new Page("display", List.of(
                     toggle("count", ops -> ops.views().count(), ops -> true, Operations::toggleCount),
                     toggle("hollow", ops -> ops.views().hollow(), ops -> true, Operations::toggleHollow),
-                    toggle("layer", ops -> ops.views().layer(), ops -> ops.views().layer() || ops.canShowLayer(), Operations::toggleLayer))));
+                    toggle("layer", ops -> ops.views().layer(), ops -> ops.views().layer() || ops.canShowLayer(), Operations::toggleLayer),
+                    toggle("preview", ops -> ops.views().preview(), ops -> true, Operations::togglePreview))));
 
     private final Operations operations;
     private int page;

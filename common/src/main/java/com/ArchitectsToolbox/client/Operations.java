@@ -91,6 +91,10 @@ public final class Operations {
         views.toggleCount();
     }
 
+    public void togglePreview() {
+        views.togglePreview();
+    }
+
     /** The layer view needs points to slice. */
     public boolean canShowLayer() {
         return !active().isEmpty();

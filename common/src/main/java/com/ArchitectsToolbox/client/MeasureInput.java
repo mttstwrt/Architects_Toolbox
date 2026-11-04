@@ -11,9 +11,10 @@ import net.minecraft.world.phys.HitResult;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The mod's keys, read every client tick. The measure key: a tap adds the targeted block, holding it opens the
- * wheel, which the wheel screen closes on release. The layer keys step the layer view; the preview key turns the
- * next-point preview on and off. Client thread.
+ * The mod's keys, read every client tick. The measure key: a tap adds the targeted block, or confirms the paste
+ * preview while one is open; holding it opens the wheel, which the wheel screen closes on release. The layer keys
+ * step the layer view, the rotate keys turn the paste preview, and the preview key turns the next-point preview on
+ * and off. Also moves the paste preview to the block face under the crosshair. Client thread.
  */
 final class MeasureInput {
     /** Held longer than this, in milliseconds, the measure key opens the wheel. */
@@ -51,9 +52,13 @@ final class MeasureInput {
         } else {
             boolean tapped = pressedAt != 0 ? !wheelOpened : clicked;
             if (tapped && noScreen) {
-                BlockPos target = target(minecraft);
-                if (target != null) {
-                    operations.addPoint(target);
+                if (operations.pasting()) {
+                    operations.confirmPaste();
+                } else {
+                    BlockPos target = target(minecraft);
+                    if (target != null) {
+                        operations.addPoint(target);
+                    }
                 }
             }
             pressedAt = 0;
@@ -65,12 +70,28 @@ final class MeasureInput {
         while (ToolboxKeys.LAYER_DOWN.consumeClick()) {
             stepLayer(minecraft, -1, noScreen);
         }
+        while (ToolboxKeys.ROTATE_LEFT.consumeClick()) {
+            rotate(minecraft, -1, noScreen);
+        }
+        while (ToolboxKeys.ROTATE_RIGHT.consumeClick()) {
+            rotate(minecraft, 1, noScreen);
+        }
+        if (operations.pasting() && noScreen) {
+            BlockHitResult hit = hit(minecraft);
+            operations.setPasteOrigin(hit != null ? hit.getBlockPos().relative(hit.getDirection()) : null);
+        }
         while (ToolboxKeys.TOGGLE_PREVIEW.consumeClick()) {
             if (noScreen) {
                 operations.togglePreview();
                 ClientCompat.actionBar(minecraft, Component.translatable("architects_toolbox.wheel.preview",
                         Component.translatable(operations.views().preview() ? "architects_toolbox.wheel.on" : "architects_toolbox.wheel.off")));
             }
+        }
+    }
+
+    private void rotate(Minecraft minecraft, int step, boolean noScreen) {
+        if (noScreen && operations.rotatePaste(step)) {
+            ClientCompat.actionBar(minecraft, Component.translatable("architects_toolbox.message.rotation", operations.rotationDegrees()));
         }
     }
 
@@ -82,21 +103,26 @@ final class MeasureInput {
 
     /** "Layer: n/N (Y=y)" in the action bar. */
     static void showLayer(Minecraft minecraft, Operations operations) {
-        if (!operations.views().layer() || !operations.canShowLayer()) {
+        var box = operations.layerBounds();
+        if (!operations.views().layer() || box == null) {
             return;
         }
-        var box = operations.active().geometry().bounds();
         int y = operations.views().layerY();
         ClientCompat.actionBar(minecraft, Component.translatable("architects_toolbox.message.layer", y - box.minY() + 1, box.sizeY(), y));
     }
 
     /** The block under the crosshair, fluids ignored, or null. */
     static @Nullable BlockPos target(Minecraft minecraft) {
+        BlockHitResult hit = hit(minecraft);
+        return hit != null ? hit.getBlockPos() : null;
+    }
+
+    private static @Nullable BlockHitResult hit(Minecraft minecraft) {
         Entity camera = minecraft.getCameraEntity();
         if (minecraft.level == null || camera == null) {
             return null;
         }
         HitResult hit = camera.pick(REACH, 1.0f, false);
-        return hit instanceof BlockHitResult block && hit.getType() == HitResult.Type.BLOCK ? block.getBlockPos() : null;
+        return hit instanceof BlockHitResult block && hit.getType() == HitResult.Type.BLOCK ? block : null;
     }
 }

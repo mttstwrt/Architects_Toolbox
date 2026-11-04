@@ -60,12 +60,16 @@ public final class Wheel {
         void step(Operations operations, int step);
     }
 
-    /** The pages. ATB-014 adds the clipboard to Edit; ATB-015 adds the world overlays to Display. */
+    /** The pages. ATB-015 adds the world overlays to Display. */
     public static final List<Page> PAGES = List.of(
             new Page("edit", List.of(
                     item("clear", ops -> !ops.active().isEmpty(), Operations::clear),
                     item("undo", ops -> ops.store().canUndo(), Operations::undo),
-                    item("redo", ops -> ops.store().canRedo(), Operations::redo))),
+                    item("redo", ops -> ops.store().canRedo(), Operations::redo),
+                    item("copy", ops -> !ops.active().isEmpty(), Operations::copy),
+                    new Item(ops -> Component.translatable(ops.pasting() ? "architects_toolbox.wheel.cancel_paste" : "architects_toolbox.wheel.paste"),
+                            ops -> ops.pasting() ? ACTIVE : 0, ops -> ops.pasting() || ops.hasClipboard(), Operations::togglePaste, null),
+                    item("clear_placements", ops -> !ops.placements().isEmpty(), Operations::clearPlacements))),
             new Page("shape", List.of(
                     shape(ShapeKind.RECTANGLE), shape(ShapeKind.CYLINDER), shape(ShapeKind.ELLIPSOID), shape(ShapeKind.SPLINE), shape(ShapeKind.LINE))),
             new Page("display", List.of(

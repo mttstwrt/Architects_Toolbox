@@ -18,7 +18,8 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
 /**
- * The client-side {@code /atb} command (F50a to F50d), with 1.0.0's syntax. Built for whatever command source the
+ * The client-side {@code /atb} command (F50a to F50d), with 1.0.0's syntax, and {@code /atb config} for the settings
+ * screen. Built for whatever command source the
  * loader gives client commands; nothing here reads the source, replies go to the player's chat. {@code identify}
  * comes back with ATB-015.
  */
@@ -27,9 +28,10 @@ public final class ToolboxCommands {
     }
 
     /**
-     * @param counted the counted total while the block count is on and finished, or a negative number
+     * @param counted    the counted total while the block count is on and finished, or a negative number
+     * @param openConfig opens the settings screen
      */
-    public static <S> LiteralArgumentBuilder<S> create(Operations operations, LongSupplier counted) {
+    public static <S> LiteralArgumentBuilder<S> create(Operations operations, LongSupplier counted, Runnable openConfig) {
         LiteralArgumentBuilder<S> atb = LiteralArgumentBuilder.literal("atb");
         atb.then(position("pos1", 0, operations));
         atb.then(position("pos2", 1, operations));
@@ -49,6 +51,10 @@ public final class ToolboxCommands {
         }
         atb.then(shape);
         atb.then(LiteralArgumentBuilder.<S>literal("info").executes(context -> info(operations.active(), counted.getAsLong())));
+        atb.then(LiteralArgumentBuilder.<S>literal("config").executes(context -> {
+            openConfig.run();
+            return 1;
+        }));
         return atb;
     }
 

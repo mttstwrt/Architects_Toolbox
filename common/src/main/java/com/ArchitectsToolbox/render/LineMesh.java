@@ -2,6 +2,7 @@ package com.ArchitectsToolbox.render;
 
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import java.util.Arrays;
 
 /**
  * Line segments in the world, built once when what they show changes and drawn every frame from then on. Ends are
@@ -22,6 +23,13 @@ public final class LineMesh {
         this.originZ = originZ;
         this.ends = ends;
         this.colors = colors;
+    }
+
+    /** The same lines with their origin at another block, all in one colour. */
+    public LineMesh movedTo(int x, int y, int z, int argb) {
+        int[] recoloured = new int[colors.length];
+        Arrays.fill(recoloured, argb);
+        return new LineMesh(x, y, z, ends, recoloured);
     }
 
     public static Builder builder(int originX, int originY, int originZ) {

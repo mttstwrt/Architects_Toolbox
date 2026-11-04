@@ -8,19 +8,22 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 
 /** NeoForge's entry point, on the client only: makes the client and connects it to NeoForge's events. */
 @Mod(value = ArchitectsToolbox.MOD_ID, dist = Dist.CLIENT)
 public final class ArchitectsToolboxNeoForge {
-    public ArchitectsToolboxNeoForge(IEventBus modBus) {
+    public ArchitectsToolboxNeoForge(IEventBus modBus, ModContainer container) {
         ToolboxClient client = new ToolboxClient(FMLPaths.CONFIGDIR.get().resolve("architects_toolbox.json"));
+        container.registerExtensionPoint(IConfigScreenFactory.class, (mod, parent) -> client.configScreen(parent));
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             //? if >=26.1 {
             event.registerCategory(ToolboxKeys.CATEGORY);

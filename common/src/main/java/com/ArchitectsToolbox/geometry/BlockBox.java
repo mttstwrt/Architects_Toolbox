@@ -43,6 +43,12 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
         return (long) sizeX() * sizeY() * sizeZ();
     }
 
+    /** The smallest box holding both. */
+    public BlockBox union(BlockBox other) {
+        return new BlockBox(Math.min(minX, other.minX), Math.min(minY, other.minY), Math.min(minZ, other.minZ),
+                Math.max(maxX, other.maxX), Math.max(maxY, other.maxY), Math.max(maxZ, other.maxZ));
+    }
+
     public boolean contains(int x, int y, int z) {
         return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
     }

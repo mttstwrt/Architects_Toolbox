@@ -1,5 +1,6 @@
 package com.ArchitectsToolbox.render;
 
+import com.ArchitectsToolbox.clipboard.Placement;
 import com.ArchitectsToolbox.geometry.BlockBox;
 import com.ArchitectsToolbox.geometry.Shape;
 import com.ArchitectsToolbox.geometry.ShapeBlocks;
@@ -13,8 +14,9 @@ import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Turns measurements and their views into a {@link WorldScene}. Pure: the input is immutable and the result is
- * new, so it runs on the scene worker thread.
+ * Turns measurements, placements and their views into a {@link WorldScene}. Pure apart from the clipboard meshes it
+ * keeps (see {@link ClipboardMeshes}): the input is immutable and the result is new, so it runs on the scene worker
+ * thread.
  */
 public final class MeasurementScene {
     /** More surface blocks than this and the hollow view gives way to the outline (1.0.0's limit). */
@@ -22,6 +24,9 @@ public final class MeasurementScene {
     /** More blocks than this to look at and the hollow and layer views are not built. */
     public static final long SCAN_LIMIT = 16_000_000;
     private static final Direction[] HORIZONTAL = {Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST};
+    /** Outline of a paste preview (F31) and of a locked placement (F32), as in 1.0.0. */
+    private static final int PASTE_COLOUR = 0xFF80C8FF;
+    private static final int LOCKED_COLOUR = 0xFF55FF55;
 
     /**
      * What to draw.
@@ -30,10 +35,16 @@ public final class MeasurementScene {
      * @param hollow       hollow view on
      * @param layerY       the single layer shown, or null for all
      * @param preview      the active measurement with the targeted block added (F05), or null
+     * @param placements   the placements locked as guides; the layer view slices them too
+     * @param paste        the paste preview, or null
+     * @param ghostModels  whether ghosts are drawn as block models as well as outlines
+     * @param ghostOpacity the ghost models' opacity, 0 to 1
      */
-    public record Input(List<Measurement> measurements, boolean hollow, @Nullable Integer layerY, @Nullable Measurement preview) {
+    public record Input(List<Measurement> measurements, boolean hollow, @Nullable Integer layerY, @Nullable Measurement preview,
+                        List<Placement> placements, @Nullable Placement paste, boolean ghostModels, float ghostOpacity) {
         public Input {
             measurements = List.copyOf(measurements);
+            placements = List.copyOf(placements);
         }
     }
 
@@ -86,7 +97,44 @@ public final class MeasurementScene {
             Outlines.add(preview, shape, new Outlines.Sink(lines, labels, lighter(preview.colour())), true);
             meshes.add(lines.build());
         }
-        return new Result(new WorldScene(meshes, List.of(), labels), warning);
+        List<GhostMesh> ghosts = new ArrayList<>();
+        boolean tooManyGhosts = false;
+        for (Placement placement : input.placements()) {
+            if (cancelled.getAsBoolean()) {
+                return null;
+            }
+            tooManyGhosts |= addPlacement(placement, input.layerY(), LOCKED_COLOUR, input, meshes, ghosts);
+        }
+        if (input.paste() != null) {
+            tooManyGhosts |= addPlacement(input.paste(), null, PASTE_COLOUR, input, meshes, ghosts);
+        }
+        if (tooManyGhosts && warning == null) {
+            warning = Component.translatable("architects_toolbox.message.ghosts_too_many", ClipboardMeshes.GHOST_LIMIT);
+        }
+        return new Result(new WorldScene(meshes, ghosts, labels), warning);
+    }
+
+    /**
+     * Adds a placement's outline, and its ghost models if they are on, or just the layer at {@code layerY}. Returns
+     * true if the models were wanted but there are too many.
+     */
+    private static boolean addPlacement(Placement placement, @Nullable Integer layerY, int argb, Input input, List<LineMesh> lines,
+                                        List<GhostMesh> ghosts) {
+        ClipboardMeshes meshes = ClipboardMeshes.of(placement.blocks());
+        BlockPos origin = placement.origin();
+        ClipboardMeshes.Part part = layerY == null ? meshes.whole() : meshes.layer(layerY - origin.getY());
+        if (part == null) {
+            return false;
+        }
+        lines.add(part.outline().movedTo(origin.getX(), origin.getY(), origin.getZ(), argb));
+        if (!input.ghostModels()) {
+            return false;
+        }
+        if (part.ghosts() == null) {
+            return true;
+        }
+        ghosts.add(new GhostMesh(part.ghosts(), origin.getX(), origin.getY(), origin.getZ(), input.ghostOpacity()));
+        return false;
     }
 
     /** Why the shape is too big to look at block by block, or null if it is not. */
@@ -156,12 +204,6 @@ public final class MeasurementScene {
         int g = ((argb >> 8) & 0xFF) + 0xFF >> 1;
         int b = (argb & 0xFF) + 0xFF >> 1;
         return (argb & 0xFF000000) | r << 16 | g << 8 | b;
-    }
-
-    /** The layer shown when the layer view is turned on: the middle of the measurement. */
-    public static int middleLayer(Measurement measurement) {
-        BlockBox box = measurement.geometry().bounds();
-        return (box.minY() + box.maxY()) / 2;
     }
 
     /** The point the preview would add, unless it is already one. */

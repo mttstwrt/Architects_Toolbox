@@ -17,6 +17,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -24,7 +25,8 @@ import org.joml.Matrix4f;
  * The only code that touches the game's world-render API; each Minecraft version has its own copy of this class.
  *
  * <p>1.21.1: the scene is drawn every frame through the game's shared buffer source, once the level is drawn. What is
- * built once per change is the scene itself, and the model quads of its ghosts.
+ * built once per change is the scene itself, and the model quads of its ghost blocks, which are kept while the same
+ * blocks are shown, wherever they move.
  *
  * <p>Client thread: {@link #show} from the tick, {@link #draw} from {@code LevelRendererMixin} at the end of the level.
  */
@@ -35,7 +37,7 @@ public final class WorldRenderLayer {
     private static final double LABEL_RANGE = 256.0;
 
     private static WorldScene scene = WorldScene.EMPTY;
-    /** The model quads of each shown ghost mesh, prepared when the mesh is first drawn. */
+    /** The model quads of each shown set of ghost blocks, prepared when the set is first drawn. */
     private static List<PreparedGhosts> prepared = List.of();
 
     private WorldRenderLayer() {
@@ -67,8 +69,13 @@ public final class WorldRenderLayer {
         buffers.endBatch(RenderType.lines());
 
         VertexConsumer ghosts = buffers.getBuffer(RenderType.translucentMovingBlock());
-        for (PreparedGhosts mesh : prepare(current.ghosts(), minecraft.getBlockRenderer())) {
-            mesh.put(cam, poseStack, ghosts);
+        List<PreparedGhosts> ready = prepare(current.ghosts(), minecraft.getBlockRenderer());
+        for (int i = 0; i < ready.size(); i++) {
+            GhostMesh mesh = current.ghosts().get(i);
+            poseStack.pushPose();
+            poseStack.translate(mesh.originX() - cam.x, mesh.originY() - cam.y, mesh.originZ() - cam.z);
+            ready.get(i).put(poseStack, ghosts, mesh.opacity());
+            poseStack.popPose();
         }
         buffers.endBatch(RenderType.translucentMovingBlock());
 
@@ -116,50 +123,55 @@ public final class WorldRenderLayer {
         }
     }
 
-    /** Keeps the prepared quads of meshes still shown and prepares new ones; a mesh is matched by identity. */
-    private static List<PreparedGhosts> prepare(List<GhostMesh> meshes, BlockRenderDispatcher blocks) {
+    /**
+     * Keeps the prepared quads of block sets still shown and prepares new ones, one per mesh in order; a set is
+     * matched by identity, so a mesh that only moved keeps its quads.
+     */
+    private static List<PreparedGhosts> prepare(List<GhostMesh> meshes, BlockRenderDispatcher dispatcher) {
         List<PreparedGhosts> next = new ArrayList<>(meshes.size());
         for (GhostMesh mesh : meshes) {
             PreparedGhosts kept = null;
             for (PreparedGhosts old : prepared) {
-                if (old.mesh == mesh) {
+                if (old.blocks == mesh.blocks()) {
                     kept = old;
                     break;
                 }
             }
-            next.add(kept != null ? kept : PreparedGhosts.of(mesh, blocks));
+            next.add(kept != null ? kept : PreparedGhosts.of(mesh.blocks(), dispatcher));
         }
         prepared = next;
         return next;
     }
 
-    /** A ghost mesh's blocks with their model quads, collected once. */
-    private record PreparedGhosts(GhostMesh mesh, List<BlockPos> positions, List<List<BakedQuad>> quads) {
-        static PreparedGhosts of(GhostMesh mesh, BlockRenderDispatcher blocks) {
-            List<BlockPos> positions = new ArrayList<>(mesh.blocks().size());
-            List<List<BakedQuad>> quads = new ArrayList<>(mesh.blocks().size());
+    /** A set of ghost blocks with the model quads of their faces that are not hidden, collected once. */
+    private record PreparedGhosts(GhostBlocks blocks, List<List<BakedQuad>> quads) {
+        static PreparedGhosts of(GhostBlocks blocks, BlockRenderDispatcher dispatcher) {
+            List<List<BakedQuad>> quads = new ArrayList<>(blocks.size());
             RandomSource random = RandomSource.create();
-            for (GhostMesh.Ghost ghost : mesh.blocks()) {
-                var model = blocks.getBlockModel(ghost.state());
+            for (int i = 0; i < blocks.size(); i++) {
+                BlockState state = blocks.state(i);
+                long seed = state.getSeed(BlockPos.of(blocks.position(i)));
+                var model = dispatcher.getBlockModel(state);
                 List<BakedQuad> blockQuads = new ArrayList<>();
                 for (Direction direction : DIRECTIONS) {
-                    random.setSeed(ghost.state().getSeed(ghost.pos()));
-                    blockQuads.addAll(model.getQuads(ghost.state(), direction, random));
+                    if (!blocks.faceHidden(i, direction)) {
+                        random.setSeed(seed);
+                        blockQuads.addAll(model.getQuads(state, direction, random));
+                    }
                 }
-                random.setSeed(ghost.state().getSeed(ghost.pos()));
-                blockQuads.addAll(model.getQuads(ghost.state(), null, random));
-                positions.add(ghost.pos());
+                random.setSeed(seed);
+                blockQuads.addAll(model.getQuads(state, null, random));
                 quads.add(blockQuads);
             }
-            return new PreparedGhosts(mesh, positions, quads);
+            return new PreparedGhosts(blocks, quads);
         }
 
-        void put(Vec3 cam, PoseStack poseStack, VertexConsumer buffer) {
-            float opacity = mesh.opacity();
-            for (int i = 0; i < positions.size(); i++) {
-                BlockPos pos = positions.get(i);
+        /** {@code poseStack} is at the mesh's origin. */
+        void put(PoseStack poseStack, VertexConsumer buffer, float opacity) {
+            for (int i = 0; i < quads.size(); i++) {
+                long pos = blocks.position(i);
                 poseStack.pushPose();
-                poseStack.translate(pos.getX() - cam.x, pos.getY() - cam.y, pos.getZ() - cam.z);
+                poseStack.translate(BlockPos.getX(pos), BlockPos.getY(pos), BlockPos.getZ(pos));
                 for (BakedQuad quad : quads.get(i)) {
                     buffer.putBulkData(poseStack.last(), quad, 1.0f, 1.0f, 1.0f, opacity, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
                 }

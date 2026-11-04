@@ -2,6 +2,7 @@ package com.ArchitectsToolbox.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
@@ -29,6 +30,11 @@ public final class ClientCompat {
         if (minecraft.player != null) {
             minecraft.player.displayClientMessage(message, true);
         }
+    }
+
+    /** Whether the server lets the player run {@code /setblock} and {@code /fill}. */
+    public static boolean canUseGameMasterCommands(LocalPlayer player) {
+        return player.hasPermissions(2);
     }
 
     public static ClickEvent copyToClipboard(String text) {

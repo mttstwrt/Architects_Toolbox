@@ -1,17 +1,8 @@
 package com.ArchitectsToolbox.render;
 
-import java.util.List;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.state.BlockState;
-
 /**
- * Blocks drawn see-through at one opacity (0 to 1): a paste preview or a placed guide. Immutable; the render layer
- * prepares the block models of a mesh once and keeps them while the same mesh is shown.
+ * Ghost blocks drawn see-through at one opacity (0 to 1), with their relative positions counted from an origin: a
+ * paste preview or a locked placement. Immutable. Moving a mesh is a new origin for the same blocks, which keeps
+ * their prepared models.
  */
-public record GhostMesh(List<Ghost> blocks, float opacity) {
-    public GhostMesh {
-        blocks = List.copyOf(blocks);
-    }
-
-    public record Ghost(BlockPos pos, BlockState state) {}
-}
+public record GhostMesh(GhostBlocks blocks, int originX, int originY, int originZ, float opacity) {}

@@ -198,8 +198,8 @@ public final class MeasurementScene {
         return true;
     }
 
-    /** Halfway to white: the colour of the next-point preview. */
-    private static int lighter(int argb) {
+    /** Halfway to white: the colour of the next-point preview, and of structure pieces. */
+    public static int lighter(int argb) {
         int r = ((argb >> 16) & 0xFF) + 0xFF >> 1;
         int g = ((argb >> 8) & 0xFF) + 0xFF >> 1;
         int b = (argb & 0xFF) + 0xFF >> 1;

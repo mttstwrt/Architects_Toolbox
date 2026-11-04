@@ -60,7 +60,7 @@ public final class Wheel {
         void step(Operations operations, int step);
     }
 
-    /** The pages. ATB-015 adds the world overlays to Display. */
+    /** The pages. */
     public static final List<Page> PAGES = List.of(
             new Page("edit", List.of(
                     item("clear", ops -> !ops.active().isEmpty(), Operations::clear),
@@ -76,7 +76,10 @@ public final class Wheel {
                     toggle("count", ops -> ops.views().count(), ops -> true, Operations::toggleCount),
                     toggle("hollow", ops -> ops.views().hollow(), ops -> true, Operations::toggleHollow),
                     toggle("layer", ops -> ops.views().layer(), ops -> ops.views().layer() || ops.canShowLayer(), Operations::toggleLayer),
-                    toggle("preview", ops -> ops.views().preview(), ops -> true, Operations::togglePreview))));
+                    toggle("preview", ops -> ops.views().preview(), ops -> true, Operations::togglePreview),
+                    toggle("chunks", ops -> ops.views().chunks(), ops -> true, Operations::toggleChunks),
+                    toggle("biomes", ops -> ops.views().biomes(), ops -> true, Operations::toggleBiomes),
+                    structures())));
 
     private final Operations operations;
     private int page;
@@ -97,6 +100,14 @@ public final class Wheel {
         return new Item(ops -> Component.translatable("architects_toolbox.wheel." + id,
                         Component.translatable(on.test(ops) ? "architects_toolbox.wheel.on" : "architects_toolbox.wheel.off")),
                 ops -> on.test(ops) ? ACTIVE : 0, enabled, run, null);
+    }
+
+    /** On or off; Shift+scroll shows or hides the pieces. Greyed out on a server, where structures are not known. */
+    private static Item structures() {
+        return new Item(ops -> Component.translatable(ops.views().structurePieces() ? "architects_toolbox.wheel.structures_pieces" : "architects_toolbox.wheel.structures",
+                        Component.translatable(ops.views().structures() ? "architects_toolbox.wheel.on" : "architects_toolbox.wheel.off")),
+                ops -> ops.views().structures() ? ACTIVE : ops.views().structurePieces() ? MODIFIED : 0,
+                ops -> ops.views().structures() || ops.canShowStructures(), Operations::toggleStructures, (ops, step) -> ops.toggleStructurePieces());
     }
 
     private static Item shape(ShapeKind shape) {

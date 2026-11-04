@@ -1,5 +1,6 @@
 package com.ArchitectsToolbox.client;
 
+import com.ArchitectsToolbox.command.Identify;
 import com.ArchitectsToolbox.command.ToolboxCommands;
 import com.ArchitectsToolbox.gui.ConfigScreen;
 import com.ArchitectsToolbox.gui.GuiCanvas;
@@ -7,6 +8,7 @@ import com.ArchitectsToolbox.gui.Wheel;
 import com.ArchitectsToolbox.measure.Measurement;
 import com.ArchitectsToolbox.measure.MeasurementStore;
 import com.ArchitectsToolbox.measure.ViewSettings;
+import com.ArchitectsToolbox.overlay.WorldOverlays;
 import com.ArchitectsToolbox.render.MeasurementScene;
 import com.ArchitectsToolbox.render.WorldRenderLayer;
 import com.ArchitectsToolbox.render.WorldScene;
@@ -22,9 +24,9 @@ import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The client side of the mod: owns the settings, the measurements, placements and their views, and decides what is
- * drawn. Made once by each loader's entry point, which calls {@link #tick}, {@link #drawHud} and {@link #commands}
- * from the client thread. Measurements and placements live as long as the client, as in 1.0.0: they are not saved
+ * The client side of the mod: owns the settings, the measurements, placements and their views, the world overlays,
+ * and decides what is drawn. Made once by each loader's entry point, which calls {@link #tick}, {@link #drawHud} and
+ * {@link #commands} from the client thread. Measurements and placements live as long as the client, as in 1.0.0: they are not saved
  * with a world.
  */
 public final class ToolboxClient {
@@ -38,6 +40,9 @@ public final class ToolboxClient {
     private final MeasureInput input = new MeasureInput(operations, wheel);
     private final SceneWorker scenes = new SceneWorker();
     private final BlockCounter counter = new BlockCounter();
+    private final WorldOverlays overlays = new WorldOverlays(views);
+    /** The newest measurement scene, shown together with the overlays. */
+    private WorldScene measured = WorldScene.EMPTY;
     private @Nullable ClientLevel level;
     private @Nullable Component lastWarning;
     /** Set by {@code /atb config}, opened on the next tick, once the chat screen has closed. */
@@ -70,7 +75,9 @@ public final class ToolboxClient {
             ClientCompat.setScreen(minecraft, configScreen(ClientCompat.screen(minecraft)));
         }
         level = minecraft.level;
+        boolean overlaysChanged = overlays.tick(minecraft);
         if (level == null) {
+            // The measurement scene is kept: it comes back with the overlays when a world loads again.
             WorldRenderLayer.show(WorldScene.EMPTY);
             return;
         }
@@ -87,11 +94,14 @@ public final class ToolboxClient {
                 operations.placements(), operations.pastePreview(), config.ghostStyle() == ToolboxConfig.GhostStyle.SOLID, config.ghostOpacity()));
         MeasurementScene.Result result = scenes.take();
         if (result != null) {
-            WorldRenderLayer.show(result.scene());
+            measured = result.scene();
             if (result.warning() != null && !Objects.equals(result.warning(), lastWarning)) {
                 ClientCompat.actionBar(minecraft, result.warning());
             }
             lastWarning = result.warning();
+        }
+        if (result != null || overlaysChanged) {
+            WorldRenderLayer.show(WorldScene.join(List.of(measured, overlays.scene())));
         }
 
         counter.track(views.count() ? active : null);
@@ -109,6 +119,6 @@ public final class ToolboxClient {
         return ToolboxCommands.create(operations, () -> {
             BlockCounter.Count count = views.count() ? counter.count() : null;
             return count != null && count.progress() >= 1 ? count.total() : -1;
-        }, () -> openConfig = true);
+        }, () -> openConfig = true, radius -> Identify.run(Minecraft.getInstance(), operations.active(), radius, overlays.scanner()));
     }
 }

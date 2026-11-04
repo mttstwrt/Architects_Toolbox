@@ -53,6 +53,11 @@ public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int max
         return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
     }
 
+    /** Whether the boxes share a block. */
+    public boolean intersects(BlockBox other) {
+        return minX <= other.maxX && maxX >= other.minX && minY <= other.maxY && maxY >= other.minY && minZ <= other.maxZ && maxZ >= other.minZ;
+    }
+
     public BlockPos min() {
         return new BlockPos(minX, minY, minZ);
     }

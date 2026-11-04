@@ -31,6 +31,7 @@
     "architects_toolbox.label.total": "Total: %s",
     "architects_toolbox.label.spline_length": "Length: %s",
 
+    "architects_toolbox.overlay.chunk": "Chunk [%s, %s]",
     "architects_toolbox.message.hollow_too_many": "Too many blocks for the hollow view (more than %s on the surface)",
     "architects_toolbox.message.too_large_to_scan": "Too large for the hollow and layer views (more than %s blocks)",
     "architects_toolbox.message.layer": "Layer: %s/%s (Y=%s)",
@@ -67,6 +68,10 @@
     "architects_toolbox.wheel.hollow": "Hollow: %s",
     "architects_toolbox.wheel.layer": "Layer: %s",
     "architects_toolbox.wheel.preview": "Preview: %s",
+    "architects_toolbox.wheel.chunks": "Chunks: %s",
+    "architects_toolbox.wheel.biomes": "Biomes: %s",
+    "architects_toolbox.wheel.structures": "Structures: %s",
+    "architects_toolbox.wheel.structures_pieces": "Structures: %s (Pieces)",
     "architects_toolbox.wheel.on": "On",
     "architects_toolbox.wheel.off": "Off",
     "architects_toolbox.wheel.shape_option.rectangle": "%s ÷%s",
@@ -92,5 +97,16 @@
     "architects_toolbox.command.info_bounds": "Min: %s  Max: %s",
     "architects_toolbox.command.info_both": "Both: %s",
     "architects_toolbox.command.info_size": "Size: %s × %s × %s (X×Y×Z)  |  Volume: %s blocks",
-    "architects_toolbox.command.info_counted": "Counted: %s blocks"
+    "architects_toolbox.command.info_counted": "Counted: %s blocks",
+    "architects_toolbox.command.identify_header": "--- Identify ---",
+    "architects_toolbox.command.identify_no_measurement": "No measurement — using player position",
+    "architects_toolbox.command.identify_radius": "Search radius: %s",
+    "architects_toolbox.command.identify_biomes": "Biomes:",
+    "architects_toolbox.command.identify_structures": "Structures:",
+    "architects_toolbox.command.identify_none": "  (none)",
+    "architects_toolbox.command.identify_none_loaded": "  (none in loaded chunks)",
+    "architects_toolbox.command.identify_singleplayer": "  (requires singleplayer)",
+    "architects_toolbox.command.identify_at": "%s at %s",
+    "architects_toolbox.command.identify_away": " (~%s blocks away)",
+    "architects_toolbox.command.identify_too_large": "  (area too large: over %s samples)"
 }

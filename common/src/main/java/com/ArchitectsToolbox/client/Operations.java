@@ -216,6 +216,28 @@ public final class Operations {
         views.togglePreview();
     }
 
+    public void toggleChunks() {
+        views.toggleChunks();
+    }
+
+    public void toggleBiomes() {
+        views.toggleBiomes();
+    }
+
+    public void toggleStructures() {
+        views.toggleStructures();
+    }
+
+    /** Shows or hides the boxes of structure pieces (F42). */
+    public void toggleStructurePieces() {
+        views.toggleStructurePieces();
+    }
+
+    /** Structures are only known in singleplayer, where the client can read the integrated server's world. */
+    public boolean canShowStructures() {
+        return Minecraft.getInstance().getSingleplayerServer() != null;
+    }
+
     /** What the layer view slices: the active measurement and the locked placements, or null if there are none. */
     public @Nullable BlockBox layerBounds() {
         BlockBox bounds = active().isEmpty() ? null : active().geometry().bounds();

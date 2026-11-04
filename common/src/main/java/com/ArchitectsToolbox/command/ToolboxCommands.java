@@ -9,6 +9,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -18,10 +19,9 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
 /**
- * The client-side {@code /atb} command (F50a to F50d), with 1.0.0's syntax, and {@code /atb config} for the settings
- * screen. Built for whatever command source the
- * loader gives client commands; nothing here reads the source, replies go to the player's chat. {@code identify}
- * comes back with ATB-015.
+ * The client-side {@code /atb} command (F50a to F50e), with 1.0.0's syntax, and {@code /atb config} for the settings
+ * screen. Built for whatever command source the loader gives client commands; nothing here reads the source, replies
+ * go to the player's chat.
  */
 public final class ToolboxCommands {
     private ToolboxCommands() {
@@ -30,8 +30,9 @@ public final class ToolboxCommands {
     /**
      * @param counted    the counted total while the block count is on and finished, or a negative number
      * @param openConfig opens the settings screen
+     * @param identify   runs {@code /atb identify} with the given radius
      */
-    public static <S> LiteralArgumentBuilder<S> create(Operations operations, LongSupplier counted, Runnable openConfig) {
+    public static <S> LiteralArgumentBuilder<S> create(Operations operations, LongSupplier counted, Runnable openConfig, IntConsumer identify) {
         LiteralArgumentBuilder<S> atb = LiteralArgumentBuilder.literal("atb");
         atb.then(position("pos1", 0, operations));
         atb.then(position("pos2", 1, operations));
@@ -51,6 +52,15 @@ public final class ToolboxCommands {
         }
         atb.then(shape);
         atb.then(LiteralArgumentBuilder.<S>literal("info").executes(context -> info(operations.active(), counted.getAsLong())));
+        atb.then(LiteralArgumentBuilder.<S>literal("identify")
+                .executes(context -> {
+                    identify.accept(0);
+                    return 1;
+                })
+                .then(RequiredArgumentBuilder.<S, Integer>argument("radius", IntegerArgumentType.integer(0, 256)).executes(context -> {
+                    identify.accept(IntegerArgumentType.getInteger(context, "radius"));
+                    return 1;
+                })));
         atb.then(LiteralArgumentBuilder.<S>literal("config").executes(context -> {
             openConfig.run();
             return 1;
@@ -98,11 +108,12 @@ public final class ToolboxCommands {
     }
 
     /** "x y z", which a click copies. */
-    private static MutableComponent coordinates(BlockPos pos) {
+    static MutableComponent coordinates(BlockPos pos) {
         return copyable(text(pos));
     }
 
-    private static MutableComponent copyable(String text) {
+    /** Text that a click copies. */
+    static MutableComponent copyable(String text) {
         return Component.literal(text).withStyle(Style.EMPTY.withColor(ChatFormatting.AQUA).withUnderlined(true)
                 .withClickEvent(ClientCompat.copyToClipboard(text)));
     }
@@ -111,7 +122,7 @@ public final class ToolboxCommands {
         return pos.getX() + " " + pos.getY() + " " + pos.getZ();
     }
 
-    private static void reply(Component message) {
+    static void reply(Component message) {
         ClientCompat.chat(Minecraft.getInstance(), message);
     }
 }

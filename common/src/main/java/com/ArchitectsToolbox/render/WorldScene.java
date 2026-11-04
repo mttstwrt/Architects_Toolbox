@@ -1,5 +1,6 @@
 package com.ArchitectsToolbox.render;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,6 +14,19 @@ public record WorldScene(List<LineMesh> lines, List<GhostMesh> ghosts, List<Worl
         lines = List.copyOf(lines);
         ghosts = List.copyOf(ghosts);
         labels = List.copyOf(labels);
+    }
+
+    /** One scene holding everything in {@code scenes}. */
+    public static WorldScene join(List<WorldScene> scenes) {
+        List<LineMesh> lines = new ArrayList<>();
+        List<GhostMesh> ghosts = new ArrayList<>();
+        List<WorldLabel> labels = new ArrayList<>();
+        for (WorldScene scene : scenes) {
+            lines.addAll(scene.lines);
+            ghosts.addAll(scene.ghosts);
+            labels.addAll(scene.labels);
+        }
+        return new WorldScene(lines, ghosts, labels);
     }
 
     public boolean isEmpty() {

@@ -33,16 +33,19 @@ public final class ToolboxClient {
     private final Path configFile;
     private ToolboxConfig config;
     private final MeasurementStore store = new MeasurementStore();
-    private final ViewSettings views = new ViewSettings();
+    private final ViewSettings views = new ViewSettings(store::active);
     private final WorldPlacer placer = new WorldPlacer();
     private final Operations operations = new Operations(store, views, placer, this::config);
     private final Wheel wheel = new Wheel(operations);
     private final MeasureInput input = new MeasureInput(operations, wheel);
     private final SceneWorker scenes = new SceneWorker();
-    private final BlockCounter counter = new BlockCounter();
+    private final MeasurementCounts counts = new MeasurementCounts();
     private final WorldOverlays overlays = new WorldOverlays(views);
     /** The newest measurement scene, shown together with the overlays. */
     private WorldScene measured = WorldScene.EMPTY;
+    private List<MeasurementScene.Shown> shownMeasurements = List.of();
+    private int shownStoreVersion = -1;
+    private int shownViewVersion = -1;
     private @Nullable ClientLevel level;
     private @Nullable Component lastWarning;
     /** Set by {@code /atb config}, opened on the next tick, once the chat screen has closed. */
@@ -51,7 +54,7 @@ public final class ToolboxClient {
     public ToolboxClient(Path configFile) {
         this.configFile = configFile;
         this.config = ToolboxConfig.load(configFile);
-        BlockChanges.listen(counter::blockChanged);
+        BlockChanges.listen(counts::blockChanged);
     }
 
     public ToolboxConfig config() {
@@ -74,6 +77,9 @@ public final class ToolboxClient {
             openConfig = false;
             ClientCompat.setScreen(minecraft, configScreen(ClientCompat.screen(minecraft)));
         }
+        if (level != minecraft.level) {
+            counts.reset();
+        }
         level = minecraft.level;
         boolean overlaysChanged = overlays.tick(minecraft);
         if (level == null) {
@@ -87,11 +93,20 @@ public final class ToolboxClient {
 
         Measurement active = store.active();
         BlockPos target = ClientCompat.screen(minecraft) == null ? MeasureInput.target(minecraft) : null;
-        List<Measurement> shown = active.isEmpty() ? List.of() : List.of(active);
+        if (shownStoreVersion != store.version() || shownViewVersion != views.version()) {
+            shownMeasurements = store.state().measurements().stream()
+                    .filter(m -> !m.isEmpty())
+                    .map(m -> {
+                        var view = views.forMeasurement(m);
+                        return new MeasurementScene.Shown(m, view.hollow(), view.layer() ? view.layerY() : null);
+                    }).toList();
+            shownStoreVersion = store.version();
+            shownViewVersion = views.version();
+        }
         Integer layerY = views.layer() && operations.canShowLayer() ? views.layerY() : null;
         boolean nextPoint = views.preview() && !operations.pasting();
-        scenes.request(new MeasurementScene.Input(shown, views.hollow(), layerY, nextPoint ? MeasurementScene.preview(active, target) : null,
-                operations.placements(), operations.pastePreview(), config.ghostStyle() == ToolboxConfig.GhostStyle.SOLID, config.ghostOpacity()));
+        scenes.request(new MeasurementScene.Input(shownMeasurements, nextPoint ? MeasurementScene.preview(active, target) : null,
+                operations.placements(), layerY, operations.pastePreview(), config.ghostStyle() == ToolboxConfig.GhostStyle.SOLID, config.ghostOpacity()));
         MeasurementScene.Result result = scenes.take();
         if (result != null) {
             measured = result.scene();
@@ -104,20 +119,20 @@ public final class ToolboxClient {
             WorldRenderLayer.show(WorldScene.join(List.of(measured, overlays.scene())));
         }
 
-        counter.track(views.count() ? active : null);
-        counter.tick(level);
+        counts.track(store.state().measurements(), views);
+        counts.tick(level);
     }
 
     public void drawHud(GuiCanvas canvas) {
-        if (views.count() && level != null) {
-            CountOverlay.draw(canvas, counter);
+        if (level != null) {
+            CountOverlay.draw(canvas, counts);
         }
     }
 
     /** The {@code /atb} command for the loader's client command source. */
     public <S> LiteralArgumentBuilder<S> commands() {
         return ToolboxCommands.create(operations, () -> {
-            BlockCounter.Count count = views.count() ? counter.count() : null;
+            BlockCounter.Count count = views.count() ? counts.count(store.active()) : null;
             return count != null && count.progress() >= 1 ? count.total() : -1;
         }, () -> openConfig = true, radius -> Identify.run(Minecraft.getInstance(), operations.active(), radius, overlays.scanner()));
     }

@@ -6,7 +6,12 @@ import com.ArchitectsToolbox.geometry.Shape;
 import com.ArchitectsToolbox.geometry.ShapeBlocks;
 import com.ArchitectsToolbox.measure.Measurement;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -28,20 +33,15 @@ public final class MeasurementScene {
     private static final int PASTE_COLOUR = 0xFF80C8FF;
     private static final int LOCKED_COLOUR = 0xFF55FF55;
 
+    /** The immutable view of one measurement; only changed measurements need new meshes. */
+    public record Shown(Measurement measurement, boolean hollow, @Nullable Integer layerY) {}
+
     /**
-     * What to draw.
-     *
-     * @param measurements the measurements with points
-     * @param hollow       hollow view on
-     * @param layerY       the single layer shown, or null for all
-     * @param preview      the active measurement with the targeted block added (F05), or null
-     * @param placements   the placements locked as guides; the layer view slices them too
-     * @param paste        the paste preview, or null
-     * @param ghostModels  whether ghosts are drawn as block models as well as outlines
-     * @param ghostOpacity the ghost models' opacity, 0 to 1
+     * What to draw. The preview carries the active measurement's ID, so it replaces only that measurement's labels.
+     * Locked ghosts use the active layer separately; another measurement's layer never slices them.
      */
-    public record Input(List<Measurement> measurements, boolean hollow, @Nullable Integer layerY, @Nullable Measurement preview,
-                        List<Placement> placements, @Nullable Placement paste, boolean ghostModels, float ghostOpacity) {
+    public record Input(List<Shown> measurements, @Nullable Measurement preview, List<Placement> placements,
+                        @Nullable Integer placementLayerY, @Nullable Placement paste, boolean ghostModels, float ghostOpacity) {
         public Input {
             measurements = List.copyOf(measurements);
             placements = List.copyOf(placements);
@@ -54,64 +54,109 @@ public final class MeasurementScene {
     private MeasurementScene() {
     }
 
-    /** Builds the scene; returns null if {@code cancelled} turned true on the way. */
+    /** Builds an uncached scene; the worker uses a persistent {@link Builder} instead. */
     public static @Nullable Result build(Input input, BooleanSupplier cancelled) {
-        List<LineMesh> meshes = new ArrayList<>();
-        List<WorldLabel> labels = new ArrayList<>();
-        Component warning = null;
-        for (Measurement measurement : input.measurements()) {
-            Shape shape = measurement.geometry();
-            BlockBox box = shape.bounds();
-            LineMesh.Builder lines = LineMesh.builder(box.minX(), box.minY(), box.minZ());
-            List<WorldLabel> ownLabels = input.preview() == null ? labels : null;
-            boolean blockView = input.hollow() || input.layerY() != null;
-            Component problem = blockView ? blockViewProblem(shape) : null;
-            if (blockView && problem == null) {
-                BlockEdges edges = new BlockEdges(box.minX(), box.minY(), box.minZ());
-                Boolean done = input.layerY() != null
-                        ? layer(shape, input.hollow(), input.layerY(), edges, cancelled)
-                        : hollow(shape, edges, cancelled);
-                if (done == null) {
+        return new Builder().build(input, cancelled);
+    }
+
+    /**
+     * The scene worker's committed meshes. Kept by stable measurement ID and replaced only when its data or view
+     * changes: preview movement costs O(measurements + preview geometry), rather than rescanning every hollow shape.
+     * Entries absent from the current request are removed, so undo history cannot retain old meshes. Worker thread only.
+     */
+    public static final class Builder {
+        private record Cached(Shown input, Result result) {}
+
+        private final Map<UUID, Cached> committed = new HashMap<>();
+
+        public @Nullable Result build(Input input, BooleanSupplier cancelled) {
+            List<LineMesh> meshes = new ArrayList<>();
+            List<WorldLabel> labels = new ArrayList<>();
+            Set<UUID> retained = new HashSet<>();
+            for (Shown shown : input.measurements()) {
+                retained.add(shown.measurement().id());
+            }
+            committed.keySet().retainAll(retained);
+            Component warning = null;
+            for (Shown shown : input.measurements()) {
+                if (cancelled.getAsBoolean()) {
                     return null;
                 }
-                if (done) {
-                    edges.addTo(lines, measurement.colour());
-                    Outlines.add(measurement, shape, new Outlines.Sink(null, ownLabels, measurement.colour()), false);
-                } else {
-                    problem = Component.translatable("architects_toolbox.message.hollow_too_many", MeasurementScene.HOLLOW_LIMIT);
+                Measurement measurement = shown.measurement();
+                Cached cached = committed.get(measurement.id());
+                if (cached == null || !cached.input().equals(shown)) {
+                    Result result = buildMeasurement(shown, cancelled);
+                    if (result == null) {
+                        return null;
+                    }
+                    cached = new Cached(shown, result);
+                    committed.put(measurement.id(), cached);
+                }
+                Result result = cached.result();
+                meshes.addAll(result.scene().lines());
+                if (input.preview() == null || !measurement.id().equals(input.preview().id())) {
+                    labels.addAll(result.scene().labels());
+                }
+                if (result.warning() != null) {
+                    warning = result.warning();
                 }
             }
-            if (!blockView || problem != null) {
-                Outlines.add(measurement, shape, new Outlines.Sink(lines, ownLabels, measurement.colour()), !input.hollow());
+            Measurement preview = input.preview();
+            if (preview != null) {
+                Shape shape = preview.geometry();
+                BlockBox box = shape.bounds();
+                LineMesh.Builder lines = LineMesh.builder(box.minX(), box.minY(), box.minZ());
+                Outlines.add(preview, shape, new Outlines.Sink(lines, labels, lighter(preview.colour())), true);
+                meshes.add(lines.build());
             }
-            if (problem != null) {
-                warning = problem;
+            List<GhostMesh> ghosts = new ArrayList<>();
+            boolean tooManyGhosts = false;
+            for (Placement placement : input.placements()) {
+                if (cancelled.getAsBoolean()) {
+                    return null;
+                }
+                tooManyGhosts |= addPlacement(placement, input.placementLayerY(), LOCKED_COLOUR, input, meshes, ghosts);
             }
-            meshes.add(lines.build());
+            if (input.paste() != null) {
+                tooManyGhosts |= addPlacement(input.paste(), null, PASTE_COLOUR, input, meshes, ghosts);
+            }
+            if (tooManyGhosts && warning == null) {
+                warning = Component.translatable("architects_toolbox.message.ghosts_too_many", ClipboardMeshes.GHOST_LIMIT);
+            }
+            return new Result(new WorldScene(meshes, ghosts, labels), warning);
         }
-        Measurement preview = input.preview();
-        if (preview != null) {
-            Shape shape = preview.geometry();
-            BlockBox box = shape.bounds();
-            LineMesh.Builder lines = LineMesh.builder(box.minX(), box.minY(), box.minZ());
-            Outlines.add(preview, shape, new Outlines.Sink(lines, labels, lighter(preview.colour())), true);
-            meshes.add(lines.build());
+    }
+
+    private static @Nullable Result buildMeasurement(Shown shown, BooleanSupplier cancelled) {
+        Measurement measurement = shown.measurement();
+        if (measurement.isEmpty()) {
+            return new Result(WorldScene.EMPTY, null);
         }
-        List<GhostMesh> ghosts = new ArrayList<>();
-        boolean tooManyGhosts = false;
-        for (Placement placement : input.placements()) {
-            if (cancelled.getAsBoolean()) {
+        Shape shape = measurement.geometry();
+        BlockBox box = shape.bounds();
+        LineMesh.Builder lines = LineMesh.builder(box.minX(), box.minY(), box.minZ());
+        List<WorldLabel> labels = new ArrayList<>();
+        boolean blockView = shown.hollow() || shown.layerY() != null;
+        Component problem = blockView ? blockViewProblem(shape) : null;
+        if (blockView && problem == null) {
+            BlockEdges edges = new BlockEdges(box.minX(), box.minY(), box.minZ());
+            Boolean done = shown.layerY() != null
+                    ? layer(shape, shown.hollow(), shown.layerY(), edges, cancelled)
+                    : hollow(shape, edges, cancelled);
+            if (done == null) {
                 return null;
             }
-            tooManyGhosts |= addPlacement(placement, input.layerY(), LOCKED_COLOUR, input, meshes, ghosts);
+            if (done) {
+                edges.addTo(lines, measurement.colour());
+                Outlines.add(measurement, shape, new Outlines.Sink(null, labels, measurement.colour()), false);
+            } else {
+                problem = Component.translatable("architects_toolbox.message.hollow_too_many", HOLLOW_LIMIT);
+            }
         }
-        if (input.paste() != null) {
-            tooManyGhosts |= addPlacement(input.paste(), null, PASTE_COLOUR, input, meshes, ghosts);
+        if (!blockView || problem != null) {
+            Outlines.add(measurement, shape, new Outlines.Sink(lines, labels, measurement.colour()), !shown.hollow());
         }
-        if (tooManyGhosts && warning == null) {
-            warning = Component.translatable("architects_toolbox.message.ghosts_too_many", ClipboardMeshes.GHOST_LIMIT);
-        }
-        return new Result(new WorldScene(meshes, ghosts, labels), warning);
+        return new Result(new WorldScene(List.of(lines.build()), List.of(), labels), problem);
     }
 
     /**

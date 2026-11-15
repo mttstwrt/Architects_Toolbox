@@ -20,6 +20,7 @@ final class SceneWorker {
         thread.setDaemon(true);
         return thread;
     });
+    private final MeasurementScene.Builder builder = new MeasurementScene.Builder();
     private final AtomicInteger generation = new AtomicInteger();
     private final AtomicReference<MeasurementScene.Result> ready = new AtomicReference<>();
     private MeasurementScene.@Nullable Input requested;
@@ -36,7 +37,7 @@ final class SceneWorker {
                 return;
             }
             try {
-                MeasurementScene.Result result = MeasurementScene.build(input, () -> generation.get() != mine);
+                MeasurementScene.Result result = builder.build(input, () -> generation.get() != mine);
                 if (result != null && generation.get() == mine) {
                     ready.set(result);
                 }

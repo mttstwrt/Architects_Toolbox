@@ -1,34 +1,75 @@
 package com.ArchitectsToolbox.measure;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.WeakHashMap;
+import java.util.function.Supplier;
+
 /**
  * How measurements are shown (hollow, a single layer, the block count, the next-point preview) and which world
  * overlays are on (chunk boundaries, biome borders, structure bounds). Views are not edits, so undo leaves them
  * alone, and none is saved. Client thread only.
  */
 public final class ViewSettings {
-    private boolean hollow;
-    private boolean layer;
-    private boolean count;
+    private final Supplier<Measurement> active;
+    // Undo snapshots keep identities alive; views can disappear once neither the store nor history refers to them.
+    private final Map<UUID, MeasurementView> measurements = new WeakHashMap<>();
+
     private boolean preview = true;
     private boolean chunks;
     private boolean biomes;
     private boolean structures;
     /** Structure bounds also show each piece's box (F42). */
     private boolean structurePieces;
-    /** The layer shown, as a world Y; kept inside the measurement by whoever shows it. */
-    private int layerY;
     private int version;
 
+
+    /** Session-local view options for one measurement, deliberately outside edit history. */
+    public static final class MeasurementView {
+        private boolean hollow;
+        private boolean layer;
+        private boolean count;
+        private int layerY;
+
+        public boolean hollow() {
+            return hollow;
+        }
+
+        public boolean layer() {
+            return layer;
+        }
+
+        public boolean count() {
+            return count;
+        }
+
+        public int layerY() {
+            return layerY;
+        }
+    }
+
+    public ViewSettings(Supplier<Measurement> active) {
+        this.active = active;
+    }
+
+    public MeasurementView forMeasurement(Measurement measurement) {
+        return measurements.computeIfAbsent(measurement.id(), id -> new MeasurementView());
+    }
+
+    private MeasurementView current() {
+        return forMeasurement(active.get());
+    }
+
     public boolean hollow() {
-        return hollow;
+        return current().hollow;
     }
 
     public boolean layer() {
-        return layer;
+        return current().layer;
     }
 
     public boolean count() {
-        return count;
+        return current().count;
     }
 
     public boolean preview() {
@@ -52,7 +93,7 @@ public final class ViewSettings {
     }
 
     public int layerY() {
-        return layerY;
+        return current().layerY;
     }
 
     public int version() {
@@ -60,19 +101,19 @@ public final class ViewSettings {
     }
 
     public void toggleHollow() {
-        hollow = !hollow;
+        current().hollow = !current().hollow;
         version++;
     }
 
     /** Turns the layer view on at {@code startY}, or off. */
     public void toggleLayer(int startY) {
-        layer = !layer;
-        layerY = startY;
+        current().layer = !current().layer;
+        current().layerY = startY;
         version++;
     }
 
     public void toggleCount() {
-        count = !count;
+        current().count = !current().count;
         version++;
     }
 
@@ -102,8 +143,8 @@ public final class ViewSettings {
     }
 
     public void setLayerY(int y) {
-        if (y != layerY) {
-            layerY = y;
+        if (y != current().layerY) {
+            current().layerY = y;
             version++;
         }
     }

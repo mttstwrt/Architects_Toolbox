@@ -34,6 +34,8 @@ public final class Operations {
     private int rotation;
     /** Where the preview's lowest corner is, following the crosshair; null while it points at nothing. */
     private @Nullable BlockPos pasteOrigin;
+    private int layerBoundsVersion = -1;
+    private @Nullable BlockBox cachedLayerBounds;
 
     Operations(MeasurementStore store, ViewSettings views, WorldPlacer placer, Supplier<ToolboxConfig> config) {
         this.store = store;
@@ -79,9 +81,57 @@ public final class Operations {
         return store.editActive(m -> m.withPoints(points));
     }
 
-    /** Removes the active measurement's points; its shape and options stay. Placements have their own clear. */
+    /** Removes the active measurement. Placements have their own clear. */
     public boolean clear() {
-        return store.editActive(m -> m.withPoints(List.of()));
+        return store.edit(state -> state.removeActive());
+    }
+
+    public boolean clearAll() {
+        return store.edit(state -> state.clearMeasurements());
+    }
+
+    public List<Integer> palette() {
+        return config.get().palette();
+    }
+
+    public int measurementLimit() {
+        return config.get().measurementLimit();
+    }
+
+    public boolean canStartMeasurement() {
+        return active().isEmpty() || store.state().measurements().size() < config.get().measurementLimit();
+    }
+
+    /** Starts a measurement in the current colour; an empty active slot is reused. */
+    public boolean newMeasurement() {
+        return pickColour(active().colour());
+    }
+
+    /** Colour is chosen before measuring: a measurement with points is kept and a new one is started. */
+    public boolean pickColour(int colour) {
+        if (!canStartMeasurement()) {
+            ClientCompat.actionBar(Minecraft.getInstance(), Component.translatable("architects_toolbox.message.measurement_limit",
+                    config.get().measurementLimit()));
+            return false;
+        }
+        boolean changed = store.edit(state -> state.start(colour));
+        if (changed) {
+            ClientCompat.actionBar(Minecraft.getInstance(), Component.translatable("architects_toolbox.message.active_measurement",
+                    store.state().active() + 1, MeasurementColours.name(colour)).withStyle(style -> style.withColor(colour & 0xFFFFFF)));
+        }
+        return changed;
+    }
+
+    public boolean nextColour() {
+        List<Integer> colours = palette();
+        int next = (colours.indexOf(active().colour()) + 1) % colours.size();
+        return pickColour(colours.get(next));
+    }
+
+    /** Selection is navigation, so it does not consume an undo step. */
+    public boolean stepMeasurement(int step) {
+        int size = store.state().measurements().size();
+        return store.select(Math.floorMod(store.state().active() + step, size));
     }
 
     public boolean setShape(ShapeKind shape) {
@@ -240,10 +290,15 @@ public final class Operations {
 
     /** What the layer view slices: the active measurement and the locked placements, or null if there are none. */
     public @Nullable BlockBox layerBounds() {
+        if (layerBoundsVersion == store.version()) {
+            return cachedLayerBounds;
+        }
         BlockBox bounds = active().isEmpty() ? null : active().geometry().bounds();
         for (Placement placement : placements()) {
             bounds = bounds == null ? placement.bounds() : bounds.union(placement.bounds());
         }
+        cachedLayerBounds = bounds;
+        layerBoundsVersion = store.version();
         return bounds;
     }
 
@@ -274,6 +329,9 @@ public final class Operations {
 
     /** Keeps the layer inside what it slices after points, shape or placements changed. */
     void keepLayerInside() {
+        if (!views.layer()) {
+            return;
+        }
         BlockBox bounds = layerBounds();
         if (views.layer() && bounds != null) {
             views.setLayerY(Math.clamp(views.layerY(), bounds.minY(), bounds.maxY()));

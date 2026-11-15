@@ -17,14 +17,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Counts the non-air blocks inside the filled shape of the active measurement (F22). A count runs a slice per tick,
+ * Counts the non-air blocks inside one measurement's filled shape (F22). A count runs a slice per tick,
  * so a large shape never stalls the game, and runs again only when the measurement changes or a block inside it
  * does. Reads the client's world, so client thread only.
  */
 final class BlockCounter {
     /** Shapes that would take more block reads than this are not counted. */
     static final long LIMIT = 64_000_000;
-    private static final int PER_TICK = 250_000;
     /** A block change inside the shape starts a new count at most this often, in milliseconds. */
     private static final long RECOUNT_DELAY = 1_000;
 
@@ -62,7 +61,13 @@ final class BlockCounter {
         shape = next.geometry();
         shown = null;
         tooLarge = ShapeBlocks.scanCost(shape) > LIMIT;
-        start();
+        changed = false;
+        if (!tooLarge) {
+            start();
+        } else {
+            pathBlocks = null;
+            counting.clear();
+        }
     }
 
     void blockChanged(BlockPos pos) {
@@ -80,18 +85,20 @@ final class BlockCounter {
         return shape == null || tooLarge ? null : shown;
     }
 
-    void tick(@Nullable Level level) {
-        if (shape == null || tooLarge || level == null) {
-            return;
+    /** Advances at most {@code budget} scan positions and returns the number consumed. */
+    int tick(@Nullable Level level, int budget) {
+        if (shape == null || tooLarge || level == null || budget <= 0) {
+            return 0;
         }
         if (changed && next >= end && System.currentTimeMillis() - startedAt >= RECOUNT_DELAY) {
             changed = false;
             start();
         }
         if (next >= end) {
-            return;
+            return 0;
         }
-        long stop = Math.min(end, next + PER_TICK);
+        long before = next;
+        long stop = Math.min(end, next + budget);
         BlockBox box = shape.bounds();
         for (; next < stop; next++) {
             if (pathBlocks != null) {
@@ -116,6 +123,7 @@ final class BlockCounter {
         if (finished || shown == null || shown.progress() < 1) {
             shown = snapshot(finished ? 1 : (float) next / end);
         }
+        return (int) (next - before);
     }
 
     private void start() {
@@ -125,6 +133,9 @@ final class BlockCounter {
         if (shape instanceof PathShape path) {
             pathBlocks = path.blocks().toLongArray();
             end = pathBlocks.length;
+            if (end == 0) {
+                shown = new Count(List.of(), 0, 1);
+            }
         } else {
             pathBlocks = null;
             end = shape == null ? 0 : shape.bounds().volume();

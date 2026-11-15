@@ -80,6 +80,11 @@ final class MeasureInput {
             BlockHitResult hit = hit(minecraft);
             operations.setPasteOrigin(hit != null ? hit.getBlockPos().relative(hit.getDirection()) : null);
         }
+        while (ToolboxKeys.NEXT_COLOUR.consumeClick()) {
+            if (noScreen) {
+                operations.nextColour();
+            }
+        }
         while (ToolboxKeys.TOGGLE_PREVIEW.consumeClick()) {
             if (noScreen) {
                 operations.togglePreview();

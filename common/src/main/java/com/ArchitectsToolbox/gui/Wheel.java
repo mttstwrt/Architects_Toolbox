@@ -1,8 +1,10 @@
 package com.ArchitectsToolbox.gui;
 
+import com.ArchitectsToolbox.client.MeasurementColours;
 import com.ArchitectsToolbox.client.Operations;
 import com.ArchitectsToolbox.measure.ShapeKind;
 import com.ArchitectsToolbox.measure.ShapeOptions;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -64,7 +66,12 @@ public final class Wheel {
     public static final List<Page> PAGES = List.of(
             new Page("edit", List.of(
                     toggle("preview", ops -> ops.views().preview(), ops -> true, Operations::togglePreview),
-                    item("clear", ops -> !ops.active().isEmpty(), Operations::clear),
+                    item("new_measurement", Operations::canStartMeasurement, Operations::newMeasurement),
+                    new Item(ops -> Component.translatable("architects_toolbox.wheel.active_measurement", ops.store().state().active() + 1,
+                                    ops.store().state().measurements().size()), ops -> ops.active().colour(),
+                            ops -> ops.store().state().measurements().size() > 1, ops -> ops.stepMeasurement(1), Operations::stepMeasurement),
+                    item("clear", ops -> !ops.active().isEmpty() || ops.store().state().measurements().size() > 1, Operations::clear),
+                    item("clear_all", ops -> !ops.active().isEmpty() || ops.store().state().measurements().size() > 1, Operations::clearAll),
                     item("undo", ops -> ops.store().canUndo(), Operations::undo),
                     item("redo", ops -> ops.store().canRedo(), Operations::redo),
                     item("copy", ops -> !ops.active().isEmpty(), Operations::copy),
@@ -82,6 +89,8 @@ public final class Wheel {
                     structures())));
 
     private final Operations operations;
+    private List<Integer> palette = List.of();
+    private List<Page> pages = PAGES;
     private int page;
     private int hovered = -1;
     private int centreX;
@@ -128,8 +137,27 @@ public final class Wheel {
         };
     }
 
+    /** Palette edits rebuild the colour page once; drawing and scrolling reuse its items. */
+    private List<Page> pages() {
+        List<Integer> configured = operations.palette();
+        if (!configured.equals(palette)) {
+            palette = configured;
+            List<Item> colours = new ArrayList<>();
+            for (int colour : palette) {
+                colours.add(new Item(ops -> ops.active().colour() == colour
+                                ? Component.translatable("architects_toolbox.wheel.selected_colour", MeasurementColours.name(colour))
+                                : MeasurementColours.name(colour),
+                        ops -> colour, ops -> true, ops -> ops.pickColour(colour), null));
+            }
+            List<Page> next = new ArrayList<>(PAGES);
+            next.add(new Page("colour", List.copyOf(colours)));
+            pages = List.copyOf(next);
+        }
+        return pages;
+    }
+
     private Page current() {
-        return PAGES.get(page);
+        return pages().get(page);
     }
 
     /** Draws the wheel and works out which item the mouse is over. */
@@ -172,8 +200,8 @@ public final class Wheel {
     private void drawTabs(GuiCanvas canvas) {
         int x = centreX - tabsWidth(canvas) / 2;
         int y = tabsTop();
-        for (int i = 0; i < PAGES.size(); i++) {
-            Component title = PAGES.get(i).title();
+        for (int i = 0; i < pages().size(); i++) {
+            Component title = pages().get(i).title();
             int width = canvas.textWidth(title) + 2 * TAB_PAD;
             canvas.fill(x, y, x + width, y + TAB_HEIGHT, i == page ? SECTOR_HOVERED : SECTOR);
             canvas.text(title, x + TAB_PAD, y + (TAB_HEIGHT - GuiCanvas.LINE_HEIGHT) / 2 + 1, i == page ? TEXT_HOVERED : HINT);
@@ -185,9 +213,9 @@ public final class Wheel {
         return centreY - outer - TAB_HEIGHT - 6;
     }
 
-    private static int tabsWidth(GuiCanvas canvas) {
+    private int tabsWidth(GuiCanvas canvas) {
         int width = -2;
-        for (Page p : PAGES) {
+        for (Page p : pages()) {
             width += canvas.textWidth(p.title()) + 2 * TAB_PAD + 2;
         }
         return width;
@@ -224,7 +252,7 @@ public final class Wheel {
             return;
         }
         // Scrolling down (a negative amount) moves to the next page, as it moves down a list.
-        page = Math.floorMod(page - step, PAGES.size());
+        page = Math.floorMod(page - step, pages().size());
         hovered = -1;
     }
 
@@ -236,8 +264,8 @@ public final class Wheel {
         int y = tabsTop();
         if (mouseY >= y && mouseY < y + TAB_HEIGHT) {
             int x = centreX - tabsWidth(canvas) / 2;
-            for (int i = 0; i < PAGES.size(); i++) {
-                int width = canvas.textWidth(PAGES.get(i).title()) + 2 * TAB_PAD;
+            for (int i = 0; i < pages().size(); i++) {
+                int width = canvas.textWidth(pages().get(i).title()) + 2 * TAB_PAD;
                 if (mouseX >= x && mouseX < x + width) {
                     page = i;
                     hovered = -1;

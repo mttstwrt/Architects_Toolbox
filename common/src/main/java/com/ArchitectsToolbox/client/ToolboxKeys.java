@@ -27,9 +27,11 @@ public final class ToolboxKeys {
     /** Turn the paste preview; 1.0.0 had these on the arrow keys, unbindable. */
     public static final KeyMapping ROTATE_LEFT = new KeyMapping("key.architects_toolbox.rotate_left", InputConstants.KEY_LEFT, CATEGORY);
     public static final KeyMapping ROTATE_RIGHT = new KeyMapping("key.architects_toolbox.rotate_right", InputConstants.KEY_RIGHT, CATEGORY);
-    /** Turns the next-point preview on and off; unbound by default, the wheel's Display page has it too. */
+    /** Turns the next-point preview on and off; unbound by default, the wheel's Edit page has it too. */
     public static final KeyMapping TOGGLE_PREVIEW = new KeyMapping("key.architects_toolbox.toggle_preview", InputConstants.UNKNOWN.getValue(), CATEGORY);
-    public static final List<KeyMapping> ALL = List.of(MEASURE, LAYER_UP, LAYER_DOWN, ROTATE_LEFT, ROTATE_RIGHT, TOGGLE_PREVIEW);
+    /** Picks the next configured colour; starts a new measurement when the active one has points. */
+    public static final KeyMapping NEXT_COLOUR = new KeyMapping("key.architects_toolbox.next_colour", InputConstants.UNKNOWN.getValue(), CATEGORY);
+    public static final List<KeyMapping> ALL = List.of(MEASURE, LAYER_UP, LAYER_DOWN, ROTATE_LEFT, ROTATE_RIGHT, TOGGLE_PREVIEW, NEXT_COLOUR);
 
     private ToolboxKeys() {
     }

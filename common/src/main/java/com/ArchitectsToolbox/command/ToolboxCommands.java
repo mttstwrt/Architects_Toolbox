@@ -1,11 +1,13 @@
 package com.ArchitectsToolbox.command;
 
 import com.ArchitectsToolbox.client.ClientCompat;
+import com.ArchitectsToolbox.client.MeasurementColours;
 import com.ArchitectsToolbox.client.Operations;
 import com.ArchitectsToolbox.geometry.BlockBox;
 import com.ArchitectsToolbox.measure.Measurement;
 import com.ArchitectsToolbox.measure.ShapeKind;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -40,7 +42,38 @@ public final class ToolboxCommands {
             operations.clear();
             reply(Component.translatable("architects_toolbox.command.cleared").withStyle(ChatFormatting.YELLOW));
             return 1;
-        }));
+        }).then(LiteralArgumentBuilder.<S>literal("all").executes(context -> {
+            operations.clearAll();
+            reply(Component.translatable("architects_toolbox.command.cleared_all").withStyle(ChatFormatting.YELLOW));
+            return 1;
+        })));
+        atb.then(LiteralArgumentBuilder.<S>literal("color").then(
+                RequiredArgumentBuilder.<S, String>argument("colour", StringArgumentType.greedyString())
+                        .suggests((context, builder) -> {
+                            for (int colour : operations.palette()) {
+                                builder.suggest(MeasurementColours.hex(colour));
+                            }
+                            for (String name : MeasurementColours.names()) {
+                                builder.suggest(name);
+                            }
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> {
+                            Integer colour = MeasurementColours.parse(StringArgumentType.getString(context, "colour"));
+                            if (colour == null) {
+                                reply(Component.translatable("architects_toolbox.command.invalid_colour").withStyle(ChatFormatting.RED));
+                                return 0;
+                            }
+                            if (!operations.canStartMeasurement()) {
+                                reply(Component.translatable("architects_toolbox.message.measurement_limit", operations.measurementLimit())
+                                        .withStyle(ChatFormatting.RED));
+                                return 0;
+                            }
+                            operations.pickColour(colour);
+                            reply(Component.translatable("architects_toolbox.message.active_measurement", operations.store().state().active() + 1,
+                                    MeasurementColours.name(colour)).withStyle(style -> style.withColor(colour & 0xFFFFFF)));
+                            return 1;
+                        })));
         LiteralArgumentBuilder<S> shape = LiteralArgumentBuilder.literal("shape");
         for (ShapeKind kind : ShapeKind.values()) {
             shape.then(LiteralArgumentBuilder.<S>literal(kind.id()).executes(context -> {

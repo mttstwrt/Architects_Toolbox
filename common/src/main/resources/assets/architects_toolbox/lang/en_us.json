@@ -50,7 +50,6 @@
     "architects_toolbox.wheel.hint": "Scroll: page",
     "architects_toolbox.wheel.page.edit": "Edit",
     "architects_toolbox.wheel.page.shape": "Shape",
-    "architects_toolbox.wheel.page.display": "Display",
     "architects_toolbox.wheel.clear": "Clear",
     "architects_toolbox.wheel.undo": "Undo",
     "architects_toolbox.wheel.redo": "Redo",
@@ -126,5 +125,8 @@
     "architects_toolbox.colour.cyan": "Cyan",
     "architects_toolbox.colour.blue": "Blue",
     "architects_toolbox.colour.purple": "Purple",
-    "architects_toolbox.colour.pink": "Pink"
+    "architects_toolbox.colour.pink": "Pink",
+    "architects_toolbox.wheel.page.measurement": "Measurement",
+    "architects_toolbox.wheel.page.world": "World",
+    "architects_toolbox.wheel.measurement_context": "Measurement %s · %s"
 }

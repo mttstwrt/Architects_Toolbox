@@ -82,10 +82,11 @@ public final class Wheel {
                     item("clear_placements", ops -> !ops.placements().isEmpty(), Operations::clearPlacements))),
             new Page("shape", List.of(
                     shape(ShapeKind.RECTANGLE), shape(ShapeKind.CYLINDER), shape(ShapeKind.ELLIPSOID), shape(ShapeKind.SPLINE), shape(ShapeKind.LINE))),
-            new Page("display", List.of(
+            new Page("measurement", List.of(
                     toggle("count", ops -> ops.views().count(), ops -> true, Operations::toggleCount),
                     toggle("hollow", ops -> ops.views().hollow(), ops -> true, Operations::toggleHollow),
-                    toggle("layer", ops -> ops.views().layer(), ops -> ops.views().layer() || ops.canShowLayer(), Operations::toggleLayer),
+                    toggle("layer", ops -> ops.views().layer(), ops -> ops.views().layer() || ops.canShowLayer(), Operations::toggleLayer))),
+            new Page("world", List.of(
                     toggle("chunks", ops -> ops.views().chunks(), ops -> true, Operations::toggleChunks),
                     toggle("biomes", ops -> ops.views().biomes(), ops -> true, Operations::toggleBiomes),
                     structures())));
@@ -192,16 +193,19 @@ public final class Wheel {
             }
         }
         Sectors.fill(canvas, centreX, centreY, 0, INNER_RADIUS - 2, 0, 2 * Math.PI, CENTRE);
-        Component middleText = hovered >= 0 ? items.get(hovered).label().apply(operations) : current().title();
         if (hovered >= 0) {
+            Component middleText = items.get(hovered).label().apply(operations);
             int y = centreY + outer + 4;
             int halfWidth = canvas.textWidth(middleText) / 2 + 5;
             canvas.fill(centreX - halfWidth, y - 2, centreX + halfWidth, y + GuiCanvas.LINE_HEIGHT + 2, CENTRE);
             canvas.centredText(middleText, centreX, y, TEXT_HOVERED);
-        } else {
-            canvas.centredText(middleText, centreX, centreY - GuiCanvas.LINE_HEIGHT / 2, HINT);
         }
         drawTabs(canvas);
+        if (current().id().equals("measurement")) {
+            Component context = Component.translatable("architects_toolbox.wheel.measurement_context",
+                    operations.store().state().active() + 1, MeasurementColours.name(operations.active().colour()));
+            canvas.centredText(context, centreX, tabsTop() - GuiCanvas.LINE_HEIGHT - 3, operations.active().colour());
+        }
     }
 
     private int textColour(Item item, boolean isHovered) {

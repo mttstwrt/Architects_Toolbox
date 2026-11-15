@@ -63,6 +63,7 @@ public final class Wheel {
     /** The pages. */
     public static final List<Page> PAGES = List.of(
             new Page("edit", List.of(
+                    toggle("preview", ops -> ops.views().preview(), ops -> true, Operations::togglePreview),
                     item("clear", ops -> !ops.active().isEmpty(), Operations::clear),
                     item("undo", ops -> ops.store().canUndo(), Operations::undo),
                     item("redo", ops -> ops.store().canRedo(), Operations::redo),
@@ -76,7 +77,6 @@ public final class Wheel {
                     toggle("count", ops -> ops.views().count(), ops -> true, Operations::toggleCount),
                     toggle("hollow", ops -> ops.views().hollow(), ops -> true, Operations::toggleHollow),
                     toggle("layer", ops -> ops.views().layer(), ops -> ops.views().layer() || ops.canShowLayer(), Operations::toggleLayer),
-                    toggle("preview", ops -> ops.views().preview(), ops -> true, Operations::togglePreview),
                     toggle("chunks", ops -> ops.views().chunks(), ops -> true, Operations::toggleChunks),
                     toggle("biomes", ops -> ops.views().biomes(), ops -> true, Operations::toggleBiomes),
                     structures())));

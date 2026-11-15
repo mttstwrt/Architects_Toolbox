@@ -5,7 +5,9 @@ import com.ArchitectsToolbox.client.Operations;
 import com.ArchitectsToolbox.measure.ShapeKind;
 import com.ArchitectsToolbox.measure.ShapeOptions;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -91,6 +93,9 @@ public final class Wheel {
     private final Operations operations;
     private List<Integer> palette = List.of();
     private List<Page> pages = PAGES;
+    private record Label(String text, int outer, List<WheelLabel.Line> lines) {}
+
+    private final Map<Item, Label> labels = new IdentityHashMap<>();
     private int page;
     private int hovered = -1;
     private int centreX;
@@ -142,6 +147,7 @@ public final class Wheel {
         List<Integer> configured = operations.palette();
         if (!configured.equals(palette)) {
             palette = configured;
+            labels.clear();
             List<Item> colours = new ArrayList<>();
             for (int colour : palette) {
                 colours.add(new Item(ops -> ops.active().colour() == colour
@@ -174,15 +180,27 @@ public final class Wheel {
             double start = -Math.PI / 2 + i * span;
             Sectors.fill(canvas, centreX, centreY, INNER_RADIUS, outer, start + GAP, start + span - GAP, i == hovered ? SECTOR_HOVERED : SECTOR);
             Item item = items.get(i);
-            double middle = start + span / 2;
-            int labelRadius = (INNER_RADIUS + outer) / 2;
-            int x = centreX + (int) Math.round(Math.cos(middle) * labelRadius);
-            int y = centreY + (int) Math.round(Math.sin(middle) * labelRadius) - GuiCanvas.LINE_HEIGHT / 2;
-            canvas.centredText(item.label().apply(operations), x, y, textColour(item, i == hovered));
+            String text = item.label().apply(operations).getString();
+            Label label = labels.get(item);
+            if (label == null || label.outer() != outer || !label.text().equals(text)) {
+                label = new Label(text, outer, WheelLabel.layout(canvas, text, INNER_RADIUS, outer, start + GAP, start + span - GAP));
+                labels.put(item, label);
+            }
+            int colour = textColour(item, i == hovered);
+            for (WheelLabel.Line line : label.lines()) {
+                canvas.text(line.text(), centreX + line.x(), centreY + line.y(), colour);
+            }
         }
         Sectors.fill(canvas, centreX, centreY, 0, INNER_RADIUS - 2, 0, 2 * Math.PI, CENTRE);
-        Component middleText = hovered >= 0 ? items.get(hovered).label().apply(operations) : Component.translatable("architects_toolbox.wheel.hint");
-        canvas.centredText(middleText, centreX, centreY - GuiCanvas.LINE_HEIGHT / 2, hovered >= 0 ? TEXT_HOVERED : HINT);
+        Component middleText = hovered >= 0 ? items.get(hovered).label().apply(operations) : current().title();
+        if (hovered >= 0) {
+            int y = centreY + outer + 4;
+            int halfWidth = canvas.textWidth(middleText) / 2 + 5;
+            canvas.fill(centreX - halfWidth, y - 2, centreX + halfWidth, y + GuiCanvas.LINE_HEIGHT + 2, CENTRE);
+            canvas.centredText(middleText, centreX, y, TEXT_HOVERED);
+        } else {
+            canvas.centredText(middleText, centreX, centreY - GuiCanvas.LINE_HEIGHT / 2, HINT);
+        }
         drawTabs(canvas);
     }
 

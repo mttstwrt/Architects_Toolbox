@@ -104,20 +104,6 @@ Settings are saved in `config/architects_toolbox.json`: ghost style (solid or wi
 
 Large operations have limits and display messages when exceeded. Copy allows up to 1,000,000 copied blocks and a 16,000,000-block scan. Ghost models stop above 250,000 displayed blocks, and detailed outlines fall back to a box above 200,000 faces. Very large copies can briefly pause the client.
 
-## Upgrading from 1.0.0
-
-Version 2 rebuilds the tools around multiple measurements, a paged wheel, live next-point previews, shape-aware copying and creative placement. Structure scanning, rebound hotkeys and ghost style/opacity settings have been rebuilt or fixed.
-
-- Keep `config/architects_toolbox.json`. The existing `ghostBlockRenderMode` and `ghostBlockOpacity` values carry over; new settings get defaults. An existing `WIREFRAME` setting stays wireframe.
-- The measure key's ID is unchanged, so its saved binding carries over. The arrow actions are now rebindable; preview and next-colour shortcuts start unbound.
-- Plain scroll now changes wheel pages. Use Shift + scroll to change shape options or structure-piece visibility.
-- Cylinder defaults to box-fit instead of centre + radius offset. Use Shift + scroll for its axis or centre + rim mode. Ellipsoid mode is now a per-measurement wheel option.
-- Clear affects the active measurement. Use Clear all for all measurements and Clear placements for locked ghosts.
-- Confirming a paste in creative can now change the world. Replacement is off by default.
-- The old unreachable mirror, stack-paste and exact-point-copy helpers are removed; nudge is not included.
-
-The mod ID remains `architects_toolbox`, and the existing `/atb` command names and argument order are retained. No measurement data needs world migration because measurements are not saved with worlds.
-
 ## Building from source
 
 Use JDK 25 to run Gradle, with JDK 21 available for 1.21.1 development clients. Stonecutter builds both Minecraft versions from shared sources; no branch switching is needed.
